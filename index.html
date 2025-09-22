@@ -1,0 +1,3213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Economade - Learn Economics Interactively</title>
+    <link rel="shortcut icon" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e6e9f0 100%);
+            min-height: 100vh;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+        
+        .card {
+            background: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .nav-btn {
+            transition: all 0.2s;
+            border-radius: 12px;
+        }
+        
+        .nav-btn.active, .nav-btn:hover {
+            background-color: #6366f1;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .token-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .simulator-handle {
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        
+        .simulator-handle:active {
+            cursor: grabbing;
+            transform: scale(1.2);
+        }
+        
+        .formula-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .formula-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .formula-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+        }
+        
+        .example-box {
+            background-color: #f0f9ff;
+            border-left: 4px solid #38bdf8;
+        }
+        
+        .operation-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .operation-btn:hover {
+            background-color: #4f46e5;
+            color: white;
+        }
+        
+        .math-container {
+            overflow-x: auto;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+        
+        #simulatorCanvas {
+            border-radius: 12px;
+            background-color: #f8fafc;
+        }
+        
+        .lesson-content {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .chat-message {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        .copyright {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 z-50 bg-black bg-opacity-50 items-center justify-center p-4 flex">
+        <div class="card w-full max-w-md p-6">
+            <h2 class="text-2xl font-bold text-indigo-600 mb-4">Welcome to Economade</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Username</label>
+                    <input type="text" id="username-input" class="w-full p-3 border rounded-lg" placeholder="Enter your username" value="EconExplorer">
+                </div>
+                <button onclick="login()" class="w-full py-3 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600 transition-colors">
+                    Start Learning
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="w-full max-w-6xl flex flex-col min-h-screen hidden">
+        <!-- Content will be rendered here by JavaScript -->
+    </div>
+
+    <!-- Quiz/Lesson Modal -->
+    <div id="quiz-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="card w-full max-w-4xl p-6 md:p-8 flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="quiz-title" class="text-2xl font-bold text-indigo-600"></h2>
+                <button id="close-quiz-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="quiz-content" class="overflow-y-auto flex-grow lesson-content"></div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Modal -->
+    <div id="assistant-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="card w-full max-w-2xl p-6 md:p-8 flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-indigo-600 flex items-center">
+                    <i class="fas fa-robot mr-2"></i> Economics Assistant
+                </h2>
+                <button id="close-assistant-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="assistant-chat" class="overflow-y-auto flex-grow mb-4 p-4 bg-gray-50 rounded-lg">
+                <div class="chat-message mb-4">
+                    <div class="bg-indigo-100 text-indigo-800 rounded-lg p-3 max-w-xs md:max-w-md">
+                        <p>Hello! I'm your economics assistant. Ask me anything about the current lesson or economic concepts in general.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex">
+                <input type="text" id="assistant-input" placeholder="Ask a question..." class="flex-grow p-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button id="send-assistant-btn" class="bg-indigo-500 text-white p-3 rounded-r-lg hover:bg-indigo-600 transition-colors">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-8">
+        <div class="copyright">
+            <p style="color:grey; font-size:70%">&copy; 2025. <a href="mailto:adef03@protonmail.com" style="color:grey; text-decoration:none;"><b>Ade</b></a>. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- Core Application State ---
+        const appState = {
+            userId: 'user-' + Math.floor(Math.random() * 10000),
+            username: '',
+            userLevel: 'Novice',
+            tokens: 50,
+            lessonsCompleted: [],
+            challengesCompleted: [],
+            currentView: 'home',
+            userProgress: {
+                scarcity: { completed: false, score: 0 },
+                supplyDemand: { completed: false, score: 0 },
+                elasticity: { completed: false, score: 0 },
+                marketStructures: { completed: false, score: 0 },
+                gdp: { completed: false, score: 0 },
+                inflation: { completed: false, score: 0 },
+                fiscalPolicy: { completed: false, score: 0 },
+                gameTheory: { completed: false, score: 0 }
+            }
+        };
+
+        // --- Enhanced Lesson Data ---
+        const lessonData = [
+            {
+                id: 'scarcity',
+                title: 'Introduction to Scarcity',
+                icon: 'fas fa-balance-scale',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">What is Scarcity?</h3>
+                        <p class="mb-4">Economics begins with a simple idea: <strong>scarcity</strong>. This means that our wants and needs are unlimited, but the resources available to satisfy them are limited. Because of this, we must make choices about what to produce, how to produce it, and for whom.</p>
+                        <p class="mb-4">Think about a chocolate chip cookie. The ingredients (flour, sugar, chocolate chips) are limited. If you use them all to make one giant cookie, you can't use them to make smaller ones. This is a basic example of scarcity.</p>
+                        
+                        <div class="bg-indigo-50 p-4 rounded-lg mt-4 border-l-4 border-indigo-400">
+                            <p class="text-indigo-700 font-medium">Key Concept: <strong>Opportunity Cost</strong></p>
+                            <p class="text-indigo-600 mt-1">The value of the next best alternative that must be given up when making a choice.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Real-World Examples</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <p class="font-medium text-green-700">Time Management</p>
+                                <p class="text-sm text-green-600 mt-1">You have 24 hours in a day. Time spent studying economics is time not spent on other activities.</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">Government Budgets</p>
+                                <p class="text-sm text-blue-600 mt-1">Money spent on defense is money not available for education or healthcare.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Interactive Example</h3>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="mb-3">Imagine you have $100 to spend this month. How would you allocate it?</p>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">Food: $40</button>
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">Entertainment: $30</button>
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">Savings: $20</button>
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">Transportation: $10</button>
+                            </div>
+                            <p class="text-sm text-gray-600">Changing one allocation affects the others - this is scarcity in action!</p>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'quiz',
+                    question: 'Which of the following best describes scarcity?',
+                    options: [
+                        'Unlimited wants and unlimited resources.',
+                        'Limited wants and unlimited resources.', 
+                        'Unlimited wants and limited resources.',
+                        'Limited wants and limited resources.'
+                    ],
+                    answerIndex: 2,
+                    explanation: 'Scarcity exists because human wants exceed the resources available to satisfy them.'
+                },
+                exercises: [
+                    {
+                        type: 'multiple-choice',
+                        question: 'What is the opportunity cost of going to college?',
+                        options: [
+                            'The tuition fees you pay',
+                            'The income you could have earned working instead',
+                            'The cost of textbooks and supplies',
+                            'The time spent studying'
+                        ],
+                        answerIndex: 1,
+                        explanation: 'Opportunity cost is the value of the next best alternative. For college, this is typically the income you forego by not working.'
+                    },
+                    {
+                        type: 'true-false',
+                        statement: 'Scarcity would disappear if everyone had more money.',
+                        answer: false,
+                        explanation: 'Scarcity is a fundamental condition resulting from limited resources and unlimited wants, not just a lack of money.'
+                    }
+                ]
+            },
+            {
+                id: 'supplyDemand',
+                title: 'Supply and Demand: The Basics',
+                icon: 'fas fa-chart-line',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">The Law of Demand</h3>
+                        <p class="mb-4">The law of <strong>demand</strong> says that as the price of a good increases, the quantity demanded by consumers will decrease. If the price of your favorite snack doubles, you might buy less of it. This is a negative relationship.</p>
+                        
+                        <div class="bg-red-50 p-4 rounded-lg mb-4 border-l-4 border-red-400">
+                            <p class="text-red-700 font-medium">Demand Shifters</p>
+                            <ul class="text-red-600 mt-1 text-sm list-disc list-inside">
+                                <li><strong>Consumer income:</strong> Higher income increases demand for normal goods</li>
+                                <li><strong>Tastes and preferences:</strong> Popular trends can increase demand</li>
+                                <li><strong>Prices of related goods:</strong> Substitute and complementary goods affect demand</li>
+                                <li><strong>Expectations:</strong> Future price expectations influence current demand</li>
+                                <li><strong>Number of buyers:</strong> More consumers means higher demand</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">The Law of Supply</h3>
+                        <p class="mb-4">The law of <strong>supply</strong> says that as the price of a good increases, the quantity supplied by producers will also increase. Think of a farmer: if they can get more for their corn, they will want to grow more of it. It's a positive relationship.</p>
+                        
+                        <div class="bg-blue-50 p-4 rounded-lg mb-4 border-l-4 border-blue-400">
+                            <p class="text-blue-700 font-medium">Supply Shifters</p>
+                            <ul class="text-blue-600 mt-1 text-sm list-disc list-inside">
+                                <li><strong>Production technology:</strong> Better technology lowers costs and increases supply</li>
+                                <li><strong>Input prices:</strong> Higher costs decrease supply</li>
+                                <li><strong>Number of sellers:</strong> More producers increases supply</li>
+                                <li><strong>Expectations:</strong> Future price expectations affect current supply</li>
+                                <li><strong>Government policies:</strong> Taxes and subsidies influence supply</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Market Equilibrium</h3>
+                        <p class="mb-4">The point where these two curves meet is called the <strong>equilibrium price and quantity</strong>. At this point, the quantity demanded equals the quantity supplied.</p>
+                        
+                        <div class="bg-green-50 p-4 rounded-lg mb-4 border-l-4 border-green-400">
+                            <p class="text-green-700 font-medium">Market Adjustments</p>
+                            <ul class="text-green-600 mt-1 text-sm list-disc list-inside">
+                                <li><strong>Surplus:</strong> When price is above equilibrium, quantity supplied exceeds quantity demanded</li>
+                                <li><strong>Shortage:</strong> When price is below equilibrium, quantity demanded exceeds quantity supplied</li>
+                                <li><strong>Price mechanism:</strong> Markets naturally adjust toward equilibrium through price changes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-yellow-700 mb-2">Demand Schedule Example</h4>
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b">
+                                        <th class="text-left py-1">Price ($)</th>
+                                        <th class="text-left py-1">Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b"><td class="py-1">10</td><td class="py-1">100</td></tr>
+                                    <tr class="border-b"><td class="py-1">20</td><td class="py-1">80</td></tr>
+                                    <tr class="border-b"><td class="py-1">30</td><td class="py-1">60</td></tr>
+                                    <tr class="border-b"><td class="py-1">40</td><td class="py-1">40</td></tr>
+                                    <tr><td class="py-1">50</td><td class="py-1">20</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-purple-700 mb-2">Supply Schedule Example</h4>
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b">
+                                        <th class="text-left py-1">Price ($)</th>
+                                        <th class="text-left py-1">Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b"><td class="py-1">10</td><td class="py-1">20</td></tr>
+                                    <tr class="border-b"><td class="py-1">20</td><td class="py-1">40</td></tr>
+                                    <tr class="border-b"><td class="py-1">30</td><td class="py-1">60</td></tr>
+                                    <tr class="border-b"><td class="py-1">40</td><td class="py-1">80</td></tr>
+                                    <tr><td class="py-1">50</td><td class="py-1">100</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'interactive',
+                    description: 'Ready to try it yourself? Head to the simulator and see how you can change equilibrium!',
+                    buttonText: 'Go to Simulator',
+                    action: () => setView('simulator')
+                },
+                exercises: [
+                    {
+                        type: 'multiple-choice',
+                        question: 'What happens to the demand curve if consumer income increases?',
+                        options: [
+                            'It shifts to the right',
+                            'It shifts to the left',
+                            'It becomes steeper',
+                            'It becomes flatter'
+                        ],
+                        answerIndex: 0,
+                        explanation: 'For normal goods, an increase in income increases demand at every price level, shifting the demand curve to the right.'
+                    },
+                    {
+                        type: 'matching',
+                        prompt: 'Match the scenario with the correct market change:',
+                        pairs: [
+                            { scenario: 'A new technology reduces production costs', effect: 'Supply increases' },
+                            { scenario: 'A popular celebrity endorses a product', effect: 'Demand increases' },
+                            { scenario: 'The price of a substitute good increases', effect: 'Demand increases' },
+                            { scenario: 'Government imposes a new tax on producers', effect: 'Supply decreases' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'elasticity',
+                title: 'Understanding Elasticity',
+                icon: 'fas fa-percentage',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">What is Elasticity?</h3>
+                        <p class="mb-4"><strong>Elasticity</strong> measures how sensitive supply or demand is to a change in price. If a small change in price leads to a big change in quantity demanded, the demand is <strong>elastic</strong> (like luxury cars). If a big change in price causes only a small change in quantity, the demand is <strong>inelastic</strong> (like medicine).</p>
+                        
+                        <div class="math-container mb-4">
+                            <p class="text-center font-semibold">Price Elasticity of Demand (PED) Formula:</p>
+                            <p class="text-center">\[ E_d = \frac{\\%\ \Delta Q_d}{\\%\ \Delta P} = \frac{\Delta Q_d}{\Delta P} \times \frac{P}{Q_d} \]</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Elasticity Reference Guide</h3>
+                        <div class="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
+                            <table class="w-full mt-2 text-sm">
+                                <thead>
+                                    <tr class="border-b">
+                                        <th class="text-left pb-2">Elasticity Value</th>
+                                        <th class="text-left pb-2">Description</th>
+                                        <th class="text-left pb-2">Examples</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="py-2">PED = 0</td>
+                                        <td class="py-2">Perfectly Inelastic</td>
+                                        <td class="py-2">Life-saving drugs</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-2">0 < |PED| < 1</td>
+                                        <td class="py-2">Inelastic</td>
+                                        <td class="py-2">Gasoline, basic food</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-2">|PED| = 1</td>
+                                        <td class="py-2">Unit Elastic</td>
+                                        <td class="py-2">Housing</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-2">|PED| > 1</td>
+                                        <td class="py-2">Elastic</td>
+                                        <td class="py-2">Luxury cars, vacations</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">PED = ∞</td>
+                                        <td class="py-2">Perfectly Elastic</td>
+                                        <td class="py-2">Agricultural commodities</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Factors Affecting Elasticity</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <p class="font-medium text-green-700">Availability of Substitutes</p>
+                                <p class="text-sm text-green-600 mt-1">Goods with more substitutes have more elastic demand.</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">Necessity vs Luxury</p>
+                                <p class="text-sm text-blue-600 mt-1">Necessities tend to have inelastic demand; luxuries have elastic demand.</p>
+                            </div>
+                            <div class="bg-yellow-50 p-3 rounded-lg">
+                                <p class="font-medium text-yellow-700">Time Horizon</p>
+                                <p class="text-sm text-yellow-600 mt-1">Demand becomes more elastic over longer time periods.</p>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded-lg">
+                                <p class="font-medium text-red-700">Proportion of Income</p>
+                                <p class="text-sm text-red-600 mt-1">Goods that take a larger portion of income have more elastic demand.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Practical Application</h3>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="mb-3"><strong>Question:</strong> If a 10% price increase causes a 5% decrease in quantity demanded, what is the price elasticity of demand?</p>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm" onclick="checkElasticityCalculation(0.5, this)">0.5 (Inelastic)</button>
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm" onclick="checkElasticityCalculation(2, this)">2.0 (Elastic)</button>
+                                <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm" onclick="checkElasticityCalculation(1, this)">1.0 (Unit Elastic)</button>
+                            </div>
+                            <p id="elasticity-feedback" class="text-sm text-gray-600 hidden"></p>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'quiz',
+                    question: 'If the price of gasoline increases by 50% but the quantity demanded only falls by 5%, is the demand for gasoline elastic or inelastic?',
+                    options: ['Elastic', 'Inelastic', 'Unit Elastic'],
+                    answerIndex: 1,
+                    explanation: 'Gasoline has inelastic demand because people need it for transportation and have few short-term alternatives, so quantity demanded changes less than price changes.'
+                },
+                exercises: [
+                    {
+                        type: 'calculation',
+                        question: 'Calculate the price elasticity of demand when price increases from $10 to $12, and quantity demanded falls from 100 to 80 units.',
+                        steps: [
+                            'Calculate percentage change in quantity: (80-100)/100 = -20%',
+                            'Calculate percentage change in price: (12-10)/10 = 20%',
+                            'Apply formula: -20%/20% = -1.0'
+                        ],
+                        answer: -1.0,
+                        explanation: 'The price elasticity of demand is -1.0, which means demand is unit elastic.'
+                    },
+                    {
+                        type: 'scenario',
+                        prompt: 'A coffee shop raises its prices by 10%. What would you expect to happen to total revenue if demand is:',
+                        scenarios: [
+                            { condition: 'Elastic (|PED| > 1)', outcome: 'Revenue decreases' },
+                            { condition: 'Inelastic (|PED| < 1)', outcome: 'Revenue increases' },
+                            { condition: 'Unit elastic (|PED| = 1)', outcome: 'Revenue unchanged' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'marketStructures',
+                title: 'Market Structures',
+                icon: 'fas fa-chess-board',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Types of Market Structures</h3>
+                        <p class="mb-4">Market structure refers to the competitive environment in which firms operate. The four main types are perfect competition, monopolistic competition, oligopoly, and monopoly.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-700 mb-2">Perfect Competition</h4>
+                                <ul class="text-green-600 text-sm list-disc list-inside">
+                                    <li>Many small firms</li>
+                                    <li>Identical products</li>
+                                    <li>Easy entry and exit</li>
+                                    <li>Price takers</li>
+                                    <li>Example: Agricultural markets</li>
+                                </ul>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-700 mb-2">Monopolistic Competition</h4>
+                                <ul class="text-blue-600 text-sm list-disc list-inside">
+                                    <li>Many firms</li>
+                                    <li>Differentiated products</li>
+                                    <li>Some market power</li>
+                                    <li>Easy entry and exit</li>
+                                    <li>Example: Restaurants, clothing stores</li>
+                                </ul>
+                            </div>
+                            <div class="bg-yellow-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-yellow-700 mb-2">Oligopoly</h4>
+                                <ul class="text-yellow-600 text-sm list-disc list-inside">
+                                    <li>Few large firms</li>
+                                    <li>Interdependent decisions</li>
+                                    <li>Significant barriers to entry</li>
+                                    <li>Strategic behavior</li>
+                                    <li>Example: Automobile industry, airlines</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-red-700 mb-2">Monopoly</h4>
+                                <ul class="text-red-600 text-sm list-disc list-inside">
+                                    <li>Single firm</li>
+                                    <li>Unique product</li>
+                                    <li>High barriers to entry</li>
+                                    <li>Price maker</li>
+                                    <li>Example: Utilities, patented drugs</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Characteristics Comparison</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-indigo-100">
+                                        <th class="text-left p-2">Characteristic</th>
+                                        <th class="text-left p-2">Perfect Competition</th>
+                                        <th class="text-left p-2">Monopolistic Competition</th>
+                                        <th class="text-left p-2">Oligopoly</th>
+                                        <th class="text-left p-2">Monopoly</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="p-2">Number of Firms</td>
+                                        <td class="p-2">Many</td>
+                                        <td class="p-2">Many</td>
+                                        <td class="p-2">Few</td>
+                                        <td class="p-2">One</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2">Product Differentiation</td>
+                                        <td class="p-2">None</td>
+                                        <td class="p-2">Some</td>
+                                        <td class="p-2">Some to significant</td>
+                                        <td class="p-2">Unique</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2">Barriers to Entry</td>
+                                        <td class="p-2">None</td>
+                                        <td class="p-2">Low</td>
+                                        <td class="p-2">High</td>
+                                        <td class="p-2">Very high</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2">Price Control</td>
+                                        <td class="p-2">None</td>
+                                        <td class="p-2">Some</td>
+                                        <td class="p-2">Considerable</td>
+                                        <td class="p-2">Significant</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Efficiency Implications</h3>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <p class="text-purple-700 font-medium mb-2">Allocative vs Productive Efficiency</p>
+                            <ul class="text-purple-600 text-sm list-disc list-inside">
+                                <li><strong>Perfect competition</strong> achieves both allocative and productive efficiency in the long run.</li>
+                                <li><strong>Monopolistic competition</strong> results in excess capacity and markup over marginal cost.</li>
+                                <li><strong>Oligopoly</strong> may lead to collusion and reduced consumer surplus.</li>
+                                <li><strong>Monopoly</strong> creates deadweight loss through reduced output and higher prices.</li>
+                            </ul>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'quiz',
+                    question: 'Which market structure is characterized by many firms selling differentiated products?',
+                    options: ['Perfect Competition', 'Monopolistic Competition', 'Oligopoly', 'Monopoly'],
+                    answerIndex: 1,
+                    explanation: 'Monopolistic competition features many firms with product differentiation, giving each some market power.'
+                },
+                exercises: [
+                    {
+                        type: 'classification',
+                        prompt: 'Classify these industries by their market structure:',
+                        items: [
+                            { industry: 'Local farmers market', structure: 'Perfect Competition' },
+                            { industry: 'Smartphone operating systems', structure: 'Oligopoly' },
+                            { industry: 'Fast food restaurants', structure: 'Monopolistic Competition' },
+                            { industry: 'Local electricity provider', structure: 'Monopoly' }
+                        ]
+                    },
+                    {
+                        type: 'analysis',
+                        prompt: 'Analyze the following scenario: A new technology dramatically lowers barriers to entry in an oligopolistic market. What changes would you expect?',
+                        points: [
+                            'More firms would enter the market',
+                            'Increased competition would likely lower prices',
+                            'Product differentiation might increase as firms seek competitive advantage',
+                            'Market structure might shift toward monopolistic competition'
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'gdp',
+                title: 'Gross Domestic Product (GDP)',
+                icon: 'fas fa-chart-pie',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">What is GDP?</h3>
+                        <p class="mb-4"><strong>Gross Domestic Product (GDP)</strong> is the total monetary value of all final goods and services produced within a country's borders in a specific time period. It is the primary indicator of a nation's economic health.</p>
+                        
+                        <div class="math-container mb-4">
+                            <p class="text-center font-semibold">GDP Calculation Methods:</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                                <div class="text-center">
+                                    <p class="font-medium">Expenditure Approach</p>
+                                    <p>\[ GDP = C + I + G + (X - M) \]</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="font-medium">Income Approach</p>
+                                    <p>\[ GDP = W + R + I + P \]</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="font-medium">Production Approach</p>
+                                    <p>\[ GDP = \sum Value\ Added \]</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Components of GDP (Expenditure Approach)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <p class="font-medium text-green-700">Consumption (C)</p>
+                                <p class="text-sm text-green-600 mt-1">Spending by households on goods and services. Typically the largest component (60-70% of GDP).</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">Investment (I)</p>
+                                <p class="text-sm text-blue-600 mt-1">Business spending on capital goods and inventory changes. Includes residential construction.</p>
+                            </div>
+                            <div class="bg-yellow-50 p-3 rounded-lg">
+                                <p class="font-medium text-yellow-700">Government Spending (G)</p>
+                                <p class="text-sm text-yellow-600 mt-1">Government expenditures on goods and services. Excludes transfer payments.</p>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded-lg">
+                                <p class="font-medium text-red-700">Net Exports (X-M)</p>
+                                <p class="text-sm text-red-600 mt-1">Exports minus imports. Can be positive (trade surplus) or negative (trade deficit).</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Real vs Nominal GDP</h3>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <p class="text-purple-700 font-medium mb-2">Adjusting for Inflation</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <p class="font-semibold">Nominal GDP</p>
+                                    <p class="text-sm">Measured using current prices. Can increase due to either higher output or higher prices.</p>
+                                </div>
+                                <div>
+                                    <p class="font-semibold">Real GDP</p>
+                                    <p class="text-sm">Measured using constant prices from a base year. Reflects changes in output only.</p>
+                                </div>
+                            </div>
+                            <div class="math-container mt-3">
+                                <p class="text-center">\[ Real\ GDP = \frac{Nominal\ GDP}{GDP\ Deflator} \times 100 \]</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">GDP Limitations</h3>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="mb-2">While GDP is a useful measure, it has several limitations:</p>
+                            <ul class="list-disc list-inside text-sm text-gray-700">
+                                <li>Doesn't account for non-market transactions (household work, volunteer work)</li>
+                                <li>Ignores income distribution</li>
+                                <li>Doesn't measure environmental degradation or resource depletion</li>
+                                <li>Doesn't reflect leisure time or quality of life</li>
+                                <li>Includes "bads" like pollution cleanup as positive contributions</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Interactive GDP Calculation</h3>
+                        <div class="bg-indigo-50 p-4 rounded-lg">
+                            <p class="mb-3">Calculate GDP using the expenditure approach:</p>
+                            <div class="space-y-2 mb-3">
+                                <div class="flex justify-between">
+                                    <span>Consumption (C):</span>
+                                    <span>$12,000 billion</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Investment (I):</span>
+                                    <span>$3,000 billion</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Government Spending (G):</span>
+                                    <span>$4,000 billion</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Exports (X):</span>
+                                    <span>$2,000 billion</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Imports (M):</span>
+                                    <span>$2,500 billion</span>
+                                </div>
+                            </div>
+                            <button onclick="calculateGDP(12000, 3000, 4000, 2000, 2500, this)" class="w-full py-2 bg-indigo-500 text-white rounded-lg font-medium">
+                                Calculate GDP
+                            </button>
+                            <p id="gdp-result" class="mt-2 text-center font-semibold hidden"></p>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'quiz',
+                    question: 'Which of the following would be included in GDP calculations?',
+                    options: [
+                        'Purchase of a used car from a neighbor',
+                        'Government social security payments',
+                        'A newly constructed house',
+                        'Stock market transactions'
+                    ],
+                    answerIndex: 2,
+                    explanation: 'Only newly produced goods and services are included in GDP. Used goods, transfer payments, and financial transactions are excluded.'
+                },
+                exercises: [
+                    {
+                        type: 'calculation',
+                        question: 'A country has consumption of $8 trillion, investment of $2 trillion, government spending of $3 trillion, exports of $1 trillion, and imports of $1.5 trillion. Calculate its GDP.',
+                        steps: [
+                            'GDP = C + I + G + (X - M)',
+                            'GDP = 8 + 2 + 3 + (1 - 1.5)',
+                            'GDP = 13 + (-0.5) = 12.5 trillion'
+                        ],
+                        answer: 12.5,
+                        explanation: 'The GDP is $12.5 trillion. Note that imports exceed exports, resulting in a trade deficit that reduces GDP.'
+                    },
+                    {
+                        type: 'critical-thinking',
+                        prompt: 'Why might two countries with similar GDP per capita have vastly different standards of living?',
+                        considerations: [
+                            'Income distribution within the country',
+                            'Cost of living differences',
+                            'Quality and availability of public services',
+                            'Environmental quality',
+                            'Leisure time and work-life balance'
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'inflation',
+                title: 'Inflation and Unemployment',
+                icon: 'fas fa-money-bill-wave',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Understanding Inflation</h3>
+                        <p class="mb-4"><strong>Inflation</strong> is a sustained increase in the general price level of goods and services in an economy over time. When inflation occurs, each unit of currency buys fewer goods and services.</p>
+                        
+                        <div class="math-container mb-4">
+                            <p class="text-center font-semibold">Inflation Rate Formula:</p>
+                            <p class="text-center">\[ Inflation\ Rate = \frac{CPI_{current} - CPI_{previous}}{CPI_{previous}} \times 100\% \]</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Types of Inflation</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <p class="font-medium text-green-700">Demand-Pull Inflation</p>
+                                <p class="text-sm text-green-600 mt-1">Occurs when aggregate demand exceeds aggregate supply. "Too much money chasing too few goods."</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">Cost-Push Inflation</p>
+                                <p class="text-sm text-blue-600 mt-1">Results from increases in production costs, such as higher wages or raw material prices.</p>
+                            </div>
+                            <div class="bg-purple-50 p-3 rounded-lg">
+                                <p class="font-medium text-purple-700">Built-In Inflation</p>
+                                <p class="text-sm text-purple-600 mt-1">Arises from adaptive expectations where workers demand higher wages to keep up with rising prices.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Measuring Inflation</h3>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <p class="text-yellow-700 font-medium mb-2">Consumer Price Index (CPI)</p>
+                            <p class="text-sm text-yellow-600">The CPI measures the average change over time in prices paid by urban consumers for a market basket of consumer goods and services.</p>
+                            <div class="math-container mt-2">
+                                <p class="text-center">\[ CPI = \frac{Cost\ of\ Basket\ in\ Current\ Year}{Cost\ of\ Basket\ in\ Base\ Year} \times 100 \]</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Types of Unemployment</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-red-50 p-3 rounded-lg">
+                                <p class="font-medium text-red-700">Frictional Unemployment</p>
+                                <p class="text-sm text-red-600 mt-1">Short-term unemployment resulting from the process of matching workers with jobs. Natural and inevitable.</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">Structural Unemployment</p>
+                                <p class="text-sm text-blue-600 mt-1">Long-term unemployment due to fundamental changes in the economy that create a mismatch of skills.</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <p class="font-medium text-green-700">Cyclical Unemployment</p>
+                                <p class="text-sm text-green-600 mt-1">Unemployment resulting from business cycle fluctuations, especially during recessions.</p>
+                            </div>
+                            <div class="bg-purple-50 p-3 rounded-lg">
+                                <p class="font-medium text-purple-700">Seasonal Unemployment</p>
+                                <p class="text-sm text-purple-600 mt-1">Unemployment due to seasonal variations in demand for certain types of labor.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">The Phillips Curve</h3>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="mb-3">The Phillips Curve illustrates the inverse relationship between inflation and unemployment in the short run.</p>
+                            <div class="flex justify-center mb-3">
+                                <div class="w-64 h-40 bg-white border border-gray-300 relative">
+                                    <!-- Simple Phillips Curve visualization -->
+                                    <div class="absolute bottom-0 left-0 w-full h-px bg-gray-400"></div>
+                                    <div class="absolute top-0 left-0 w-px h-full bg-gray-400"></div>
+                                    <div class="absolute" style="bottom: 20%; left: 10%; width: 80%; height: 2px; background: linear-gradient(to right, #ef4444, #3b82f6); transform: rotate(-15deg); transform-origin: left bottom;"></div>
+                                    <div class="absolute text-xs" style="bottom: 0; left: 0;">High Unemployment</div>
+                                    <div class="absolute text-xs" style="bottom: 0; right: 0;">Low Unemployment</div>
+                                    <div class="absolute text-xs" style="top: 0; left: 5px;">High Inflation</div>
+                                    <div class="absolute text-xs" style="bottom: 0; left: 5px;">Low Inflation</div>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">In the long run, the Phillips Curve becomes vertical at the natural rate of unemployment, indicating no trade-off between inflation and unemployment.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Interactive Inflation Calculator</h3>
+                        <div class="bg-indigo-50 p-4 rounded-lg">
+                            <p class="mb-3">See how inflation affects purchasing power over time:</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Initial Amount ($)</label>
+                                    <input type="number" id="inflation-amount" class="w-full p-2 border rounded" value="1000">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Annual Inflation Rate (%)</label>
+                                    <input type="number" id="inflation-rate" class="w-full p-2 border rounded" value="3">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Number of Years</label>
+                                    <input type="number" id="inflation-years" class="w-full p-2 border rounded" value="10">
+                                </div>
+                            </div>
+                            <button onclick="calculateInflation()" class="w-full py-2 bg-indigo-500 text-white rounded-lg font-medium">
+                                Calculate Future Value
+                            </button>
+                            <p id="inflation-result" class="mt-2 text-center font-semibold hidden"></p>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'quiz',
+                    question: 'Which type of unemployment would be most directly addressed by macroeconomic stabilization policies?',
+                    options: ['Frictional', 'Structural', 'Cyclical', 'Seasonal'],
+                    answerIndex: 2,
+                    explanation: 'Cyclical unemployment results from economic downturns and can be reduced through fiscal and monetary policies that stimulate aggregate demand.'
+                },
+                exercises: [
+                    {
+                        type: 'calculation',
+                        question: 'If the CPI was 240 last year and is 252 this year, what is the inflation rate?',
+                        steps: [
+                            'Inflation Rate = (CPI_current - CPI_previous) / CPI_previous × 100%',
+                            'Inflation Rate = (252 - 240) / 240 × 100%',
+                            'Inflation Rate = 12 / 240 × 100% = 5%'
+                        ],
+                        answer: 5,
+                        explanation: 'The inflation rate is 5%, meaning prices have increased by 5% over the year.'
+                    },
+                    {
+                        type: 'analysis',
+                        prompt: 'Analyze the potential effects of unexpected high inflation on different groups in society:',
+                        groups: [
+                            { group: 'Fixed-income retirees', effect: 'Negative - their purchasing power decreases' },
+                            { group: 'Homeowners with fixed-rate mortgages', effect: 'Positive - they repay loans with less valuable dollars' },
+                            { group: 'Workers without cost-of-living adjustments', effect: 'Negative - real wages decline' },
+                            { group: 'Borrowers', effect: 'Positive - real value of debt decreases' },
+                            { group: 'Lenders', effect: 'Negative - repaid with less valuable currency' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'fiscalPolicy',
+                title: 'Fiscal and Monetary Policy',
+                icon: 'fas fa-landmark',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Fiscal Policy</h3>
+                        <p class="mb-4"><strong>Fiscal policy</strong> involves government spending and taxation decisions to influence the economy. It is implemented by the government (Congress and President in the U.S.).</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <p class="font-semibold text-green-700 mb-2">Expansionary Fiscal Policy</p>
+                                <ul class="text-green-600 text-sm list-disc list-inside">
+                                    <li>Increase government spending</li>
+                                    <li>Decrease taxes</li>
+                                    <li>Used during recessions</li>
+                                    <li>Increases aggregate demand</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <p class="font-semibold text-red-700 mb-2">Contractionary Fiscal Policy</p>
+                                <ul class="text-red-600 text-sm list-disc list-inside">
+                                    <li>Decrease government spending</li>
+                                    <li>Increase taxes</li>
+                                    <li>Used during inflation</li>
+                                    <li>Decreases aggregate demand</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Monetary Policy</h3>
+                        <p class="mb-4"><strong>Monetary policy</strong> involves controlling the money supply and interest rates to influence the economy. It is implemented by the central bank (Federal Reserve in the U.S.).</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <p class="font-semibold text-blue-700 mb-2">Expansionary Monetary Policy</p>
+                                <ul class="text-blue-600 text-sm list-disc list-inside">
+                                    <li>Lower interest rates</li>
+                                    <li>Increase money supply</li>
+                                    <li>Used during recessions</li>
+                                    <li>Stimulates borrowing and spending</li>
+                                </ul>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg">
+                                <p class="font-semibold text-purple-700 mb-2">Contractionary Monetary Policy</p>
+                                <ul class="text-purple-600 text-sm list-disc list-inside">
+                                    <li>Raise interest rates</li>
+                                    <li>Decrease money supply</li>
+                                    <li>Used during inflation</li>
+                                    <li>Reduces borrowing and spending</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Policy Tools Comparison</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-indigo-100">
+                                        <th class="text-left p-2">Policy Tool</th>
+                                        <th class="text-left p-2">Fiscal Policy</th>
+                                        <th class="text-left p-2">Monetary Policy</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="p-2">Implementing Body</td>
+                                        <td class="p-2">Government (Congress/President)</td>
+                                        <td class="p-2">Central Bank (Federal Reserve)</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2">Primary Tools</td>
+                                        <td class="p-2">Taxation, Government Spending</td>
+                                        <td class="p-2">Interest Rates, Reserve Requirements</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2">Implementation Lag</td>
+                                        <td class="p-2">Long (political process)</td>
+                                        <td class="p-2">Short (can act quickly)</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2">Effectiveness</td>
+                                        <td class="p-2">Targeted but may create deficits</td>
+                                        <td class="p-2">Broad but indirect effects</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2">Political Influence</td>
+                                        <td class="p-2">High (subject to political pressures)</td>
+                                        <td class="p-2">Low (designed to be independent)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Automatic Stabilizers</h3>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <p class="text-yellow-700 font-medium mb-2">Built-in Economic Stabilizers</p>
+                            <p class="text-sm text-yellow-600">Automatic stabilizers are government programs that automatically expand during economic downturns and contract during expansions, without requiring new legislation.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                                <div>
+                                    <p class="font-semibold">Examples:</p>
+                                    <ul class="text-sm list-disc list-inside">
+                                        <li>Unemployment insurance</li>
+                                        <li>Progressive income tax</li>
+                                        <li>Welfare programs</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <p class="font-semibold">How they work:</p>
+                                    <ul class="text-sm list-disc list-inside">
+                                        <li>During recession: Benefits increase, taxes decrease</li>
+                                        <li>During expansion: Benefits decrease, taxes increase</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Policy Dilemmas and Trade-offs</h3>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="mb-3">Policymakers often face difficult trade-offs:</p>
+                            <div class="space-y-3">
+                                <div class="flex items-start">
+                                    <div class="bg-indigo-100 text-indigo-800 rounded-full w-6 h-6 flex items-center justify-center mr-2 mt-1 flex-shrink-0">1</div>
+                                    <p class="text-sm"><strong>Inflation vs. Unemployment:</strong> The Phillips Curve suggests a short-run trade-off between these two problems.</p>
+                                </div>
+                                <div class="flex items-start">
+                                    <div class="bg-indigo-100 text-indigo-800 rounded-full w-6 h-6 flex items-center justify-center mr-2 mt-1 flex-shrink-0">2</div>
+                                    <p class="text-sm"><strong>Short-term vs. Long-term:</strong> Policies that stimulate the economy now may create problems (like inflation) later.</p>
+                                </div>
+                                <div class="flex items-start">
+                                    <div class="bg-indigo-100 text-indigo-800 rounded-full w-6 h-6 flex items-center justify-center mr-2 mt-1 flex-shrink-0">3</div>
+                                    <p class="text-sm"><strong>Efficiency vs. Equity:</strong> Policies that promote economic growth may increase inequality.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Interactive Policy Simulator</h3>
+                        <div class="bg-indigo-50 p-4 rounded-lg">
+                            <p class="mb-3">Select appropriate policies for different economic situations:</p>
+                            <div class="mb-3">
+                                <label class="block text-sm font-medium mb-1">Economic Situation:</label>
+                                <select id="economic-situation" class="w-full p-2 border rounded">
+                                    <option value="recession">Recession (High Unemployment, Low Inflation)</option>
+                                    <option value="inflation">High Inflation (Low Unemployment)</option>
+                                    <option value="stagflation">Stagflation (High Unemployment, High Inflation)</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <p class="font-medium mb-2">Fiscal Policy Options:</p>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="fiscal_expand"> Increase Government Spending</label>
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="fiscal_contract"> Decrease Government Spending</label>
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="tax_cut"> Cut Taxes</label>
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="tax_increase"> Raise Taxes</label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium mb-2">Monetary Policy Options:</p>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="monetary_expand"> Lower Interest Rates</label>
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="monetary_contract"> Raise Interest Rates</label>
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="reserve_decrease"> Decrease Reserve Requirements</label>
+                                        <label class="flex items-center"><input type="checkbox" class="mr-2" value="reserve_increase"> Increase Reserve Requirements</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="evaluatePolicyChoices()" class="w-full py-2 bg-indigo-500 text-white rounded-lg font-medium">
+                                Evaluate Policy Choices
+                            </button>
+                            <p id="policy-feedback" class="mt-2 text-center font-semibold hidden"></p>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'quiz',
+                    question: 'Which policy would be most appropriate during a period of high inflation?',
+                    options: [
+                        'Increase government spending and lower taxes',
+                        'Decrease government spending and raise taxes',
+                        'Lower interest rates and decrease reserve requirements',
+                        'Increase both government spending and interest rates'
+                    ],
+                    answerIndex: 1,
+                    explanation: 'During high inflation, contractionary policies are needed. Decreasing government spending and raising taxes reduce aggregate demand, helping to control inflation.'
+                },
+                exercises: [
+                    {
+                        type: 'scenario-analysis',
+                        prompt: 'The economy is experiencing a severe recession with unemployment at 9%. What combination of fiscal and monetary policies would you recommend?',
+                        correct_approach: [
+                            'Fiscal: Increase government spending on infrastructure and provide tax cuts to stimulate demand',
+                            'Monetary: Lower interest rates to encourage borrowing and investment',
+                            'Consider automatic stabilizers that are already in effect'
+                        ],
+                        reasoning: 'During a recession, expansionary policies are needed to increase aggregate demand and reduce unemployment.'
+                    },
+                    {
+                        type: 'critical-thinking',
+                        prompt: 'What are the potential limitations of using fiscal policy to combat economic downturns?',
+                        considerations: [
+                            'Implementation lags due to political processes',
+                            'Crowding out of private investment',
+                            'Increased government debt',
+                            'Difficulty in timing the policies correctly',
+                            'Potential for inflation if stimulus is excessive'
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'gameTheory',
+                title: 'Game Theory and Strategic Behavior',
+                icon: 'fas fa-chess',
+                content: `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Introduction to Game Theory</h3>
+                        <p class="mb-4"><strong>Game theory</strong> is the study of strategic decision-making where the outcome for each participant depends on the actions of all participants. It is particularly useful in economics for analyzing oligopolistic markets.</p>
+                        
+                        <div class="bg-purple-50 p-4 rounded-lg mb-4">
+                            <p class="text-purple-700 font-medium mb-2">Key Concepts</p>
+                            <ul class="text-purple-600 text-sm list-disc list-inside">
+                                <li><strong>Players:</strong> Decision-makers in the game</li>
+                                <li><strong>Strategies:</strong> Possible actions available to each player</li>
+                                <li><strong>Payoffs:</strong> Outcomes associated with each combination of strategies</li>
+                                <li><strong>Nash Equilibrium:</strong> Situation where no player can improve their outcome by unilaterally changing strategy</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">The Prisoner's Dilemma</h3>
+                        <p class="mb-4">The prisoner's dilemma is a classic game theory scenario that demonstrates why two rational individuals might not cooperate, even when it appears to be in their best interest to do so.</p>
+                        
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <p class="font-semibold mb-2">Scenario:</p>
+                            <p class="text-sm mb-3">Two criminals are arrested. Each prisoner is in solitary confinement with no means of communication. The prosecutors offer each prisoner a bargain:</p>
+                            <ul class="text-sm list-disc list-inside mb-3">
+                                <li>If both confess, each serves 5 years in prison</li>
+                                <li>If one confesses and the other remains silent, the confessor goes free while the silent one serves 10 years</li>
+                                <li>If both remain silent, each serves 1 year</li>
+                            </ul>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm border">
+                                    <thead>
+                                        <tr class="bg-indigo-100">
+                                            <th class="border p-2"></th>
+                                            <th class="border p-2" colspan="2">Prisoner B</th>
+                                        </tr>
+                                        <tr class="bg-indigo-50">
+                                            <th class="border p-2"></th>
+                                            <th class="border p-2">Confess</th>
+                                            <th class="border p-2">Silent</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="border p-2 font-medium bg-indigo-50">Prisoner A</td>
+                                            <td class="border p-2 bg-red-100">A: 5 years<br>B: 5 years</td>
+                                            <td class="border p-2 bg-green-100">A: 0 years<br>B: 10 years</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="border p-2 font-medium bg-indigo-50">Silent</td>
+                                            <td class="border p-2 bg-green-100">A: 10 years<br>B: 0 years</td>
+                                            <td class="border p-2 bg-blue-100">A: 1 year<br>B: 1 year</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <p class="text-sm mt-3">The dominant strategy for each prisoner is to confess, leading to the Nash equilibrium where both confess and serve 5 years, even though both would be better off if they remained silent.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Applications in Economics</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <p class="font-medium text-green-700">Oligopoly Pricing</p>
+                                <p class="text-sm text-green-600 mt-1">Firms face a prisoner's dilemma when deciding whether to compete on price or collude for higher profits.</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">Advertising Wars</p>
+                                <p class="text-sm text-blue-600 mt-1">Companies may engage in excessive advertising even when it would be mutually beneficial to advertise less.</p>
+                            </div>
+                            <div class="bg-yellow-50 p-3 rounded-lg">
+                                <p class="font-medium text-yellow-700">Public Goods</p>
+                                <p class="text-sm text-yellow-600 mt-1">Individuals may free-ride on public goods rather than contributing, leading to underprovision.</p>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded-lg">
+                                <p class="font-medium text-red-700">Trade Policy</p>
+                                <p class="text-sm text-red-600 mt-1">Countries may impose tariffs even when free trade would benefit all parties.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Repeated Games</h3>
+                        <div class="bg-indigo-50 p-4 rounded-lg">
+                            <p class="text-indigo-700 font-medium mb-2">Cooperation in Repeated Interactions</p>
+                            <p class="text-sm text-indigo-600">When games are repeated, players can use strategies like "tit-for-tat" to encourage cooperation. This explains why collusion is more likely in industries with stable, long-term competition.</p>
+                            <div class="mt-3">
+                                <p class="font-semibold">Tit-for-Tat Strategy:</p>
+                                <ul class="text-sm list-disc list-inside">
+                                    <li>Start by cooperating</li>
+                                    <li>Then mimic your opponent's previous move</li>
+                                    <li>This encourages mutual cooperation over time</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-3">Interactive Game Theory Simulator</h3>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="mb-3">Try different strategies in a repeated prisoner's dilemma game:</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <p class="font-medium mb-2">Your Strategy:</p>
+                                    <select id="player-strategy" class="w-full p-2 border rounded">
+                                        <option value="always_cooperate">Always Cooperate</option>
+                                        <option value="always_defect">Always Defect</option>
+                                        <option value="tit_for_tat">Tit for Tat</option>
+                                        <option value="random">Random</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <p class="font-medium mb-2">Opponent Strategy:</p>
+                                    <select id="opponent-strategy" class="w-full p-2 border rounded">
+                                        <option value="always_cooperate">Always Cooperate</option>
+                                        <option value="always_defect">Always Defect</option>
+                                        <option value="tit_for_tat">Tit for Tat</option>
+                                        <option value="random">Random</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm font-medium mb-1">Number of Rounds:</label>
+                                <input type="number" id="game-rounds" class="w-full p-2 border rounded" value="10" min="1" max="50">
+                            </div>
+                            <button onclick="simulateGameTheory()" class="w-full py-2 bg-indigo-500 text-white rounded-lg font-medium">
+                                Simulate Game
+                            </button>
+                            <div id="game-results" class="mt-3 hidden">
+                                <p class="font-semibold mb-2">Game Results:</p>
+                                <div id="round-results" class="text-sm max-h-40 overflow-y-auto mb-2"></div>
+                                <p id="final-score" class="font-semibold"></p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                challenge: {
+                    type: 'quiz',
+                    question: 'In the prisoner\'s dilemma, what is the Nash equilibrium?',
+                    options: [
+                        'Both prisoners remain silent',
+                        'Both prisoners confess',
+                        'One confesses, one remains silent',
+                        'There is no Nash equilibrium'
+                    ],
+                    answerIndex: 1,
+                    explanation: 'The Nash equilibrium occurs when both prisoners confess, as neither can improve their outcome by unilaterally changing strategy.'
+                },
+                exercises: [
+                    {
+                        type: 'matrix-analysis',
+                        prompt: 'Consider a pricing game between two firms. Each can set a high price ($10) or low price ($5). The payoff matrix shows profits in millions:',
+                        matrix: {
+                            headers: ['', 'Firm B: High Price', 'Firm B: Low Price'],
+                            rows: [
+                                ['Firm A: High Price', 'A: $8, B: $8', 'A: $2, B: $10'],
+                                ['Firm A: Low Price', 'A: $10, B: $2', 'A: $5, B: $5']
+                            ]
+                        },
+                        questions: [
+                            'What is the dominant strategy for each firm?',
+                            'What is the Nash equilibrium?',
+                            'Is there a cooperative outcome that would be better for both firms?'
+                        ],
+                        answers: [
+                            'The dominant strategy for each firm is to set a low price.',
+                            'The Nash equilibrium is both firms setting low prices and earning $5 million each.',
+                            'Yes, if both set high prices, they would earn $8 million each, which is better for both.'
+                        ]
+                    },
+                    {
+                        type: 'real-world-application',
+                        prompt: 'How does game theory explain why OPEC countries often struggle to maintain oil production quotas?',
+                        analysis: [
+                            'Each country has an incentive to produce more than its quota to increase revenue',
+                            'If all countries cheat on quotas, oil prices fall, hurting all members',
+                            'This creates a prisoner\'s dilemma where individual incentives conflict with collective benefits',
+                            'Monitoring and enforcement mechanisms are needed to sustain cooperation'
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // --- Formulas Data ---
+        const formulasData = [
+            {
+                id: 'demand-function',
+                title: 'Demand Function',
+                icon: 'chart-line',
+                category: 'demand',
+                content: `\[ Q_d = a - bP \]`,
+                description: 'Where: \( Q_d \) = Quantity demanded, \( P \) = Price, \( a \) = Intercept, \( b \) = Slope',
+                example: `If \( Q_d = 100 - 5P \):<br>• At price \( P = 10 \), quantity demanded = \( 100 - 5(10) = 50 \)<br>• At price \( P = 15 \), quantity demanded = \( 100 - 5(15) = 25 \)`
+            },
+            {
+                id: 'supply-function',
+                title: 'Supply Function',
+                icon: 'arrow-up',
+                category: 'supply',
+                content: `\[ Q_s = c + dP \]`,
+                description: 'Where: \( Q_s \) = Quantity supplied, \( P \) = Price, \( c \) = Intercept, \( d \) = Slope',
+                example: `If \( Q_s = 20 + 8P \):<br>• At price \( P = 5 \), quantity supplied = \( 20 + 8(5) = 60 \)<br>• At price \( P = 10 \), quantity supplied = \( 20 + 8(10) = 100 \)`
+            },
+            {
+                id: 'equilibrium',
+                title: 'Market Equilibrium',
+                icon: 'balance-scale',
+                category: 'equilibrium',
+                content: `\[ Q_d = Q_s \] \[ a - bP = c + dP \]`,
+                description: 'Where demand equals supply',
+                example: `Find equilibrium when \( Q_d = 100 - 5P \) and \( Q_s = 20 + 8P \):<br>Set \( 100 - 5P = 20 + 8P \)<br>\( 100 - 20 = 8P + 5P \)<br>\( 80 = 13P \)<br>\( P = 80/13 ≈ 6.15 \)<br>Then \( Q = 100 - 5(6.15) ≈ 69.25 \)`
+            },
+            {
+                id: 'price-elasticity',
+                title: 'Price Elasticity of Demand',
+                icon: 'percentage',
+                category: 'elasticity',
+                content: `\[ E_d = \frac{\\%\ \\Delta Q_d}{\\%\ \\Delta P} = \frac{\Delta Q_d}{\Delta P} \times \frac{P}{Q_d} \]`,
+                description: 'Measures responsiveness of quantity demanded to price changes',
+                example: `When price increases from $10 to $12, quantity demanded falls from 100 to 80 units:<br>\( \Delta Q_d = 80 - 100 = -20 \)<br>\( \Delta P = 12 - 10 = 2 \)<br>\( \frac{\Delta Q_d}{\Delta P} = \frac{-20}{2} = -10 \)<br>Using initial values: \( E_d = -10 \times \frac{10}{100} = -1 \)`
+            },
+            {
+                id: 'income-elasticity',
+                title: 'Income Elasticity of Demand',
+                icon: 'money-bill-wave',
+                category: 'elasticity',
+                content: `\[ E_i = \frac{\\%\ \\Delta Q_d}{\\%\ \\Delta I} = \frac{\Delta Q_d}{\Delta I} \times \frac{I}{Q_d} \]`,
+                description: 'Measures responsiveness of demand to changes in income',
+                example: `When income increases from $2,000 to $2,500, quantity demanded increases from 50 to 70 units:<br>\( \Delta Q_d = 70 - 50 = 20 \)<br>\( \Delta I = 2500 - 2000 = 500 \)<br>\( \frac{\Delta Q_d}{\Delta I} = \frac{20}{500} = 0.04 \)<br>Using initial values: \( E_i = 0.04 \times \frac{2000}{50} = 1.6 \)`
+            },
+            {
+                id: 'cross-elasticity',
+                title: 'Cross-Price Elasticity',
+                icon: 'exchange-alt',
+                category: 'elasticity',
+                content: `\[ E_{xy} = \frac{\\%\ \\Delta Q_x}{\\%\ \\Delta P_y} = \frac{\Delta Q_x}{\Delta P_y} \times \frac{P_y}{Q_x} \]`,
+                description: 'Measures responsiveness of demand for good X to price changes of good Y',
+                example: `When price of tea increases from $4 to $5, quantity demanded of coffee increases from 100 to 120 units:<br>\( \Delta Q_x = 120 - 100 = 20 \)<br>\( \Delta P_y = 5 - 4 = 1 \)<br>\( \frac{\Delta Q_x}{\Delta P_y} = \frac{20}{1} = 20 \)<br>Using initial values: \( E_{xy} = 20 \times \frac{4}{100} = 0.8 \)`
+            },
+            {
+                id: 'supply-elasticity',
+                title: 'Price Elasticity of Supply',
+                icon: 'arrow-up',
+                category: 'elasticity',
+                content: `\[ E_s = \frac{\\%\ \\Delta Q_s}{\\%\ \\Delta P} = \frac{\Delta Q_s}{\Delta P} \times \frac{P}{Q_s} \]`,
+                description: 'Measures responsiveness of quantity supplied to price changes',
+                example: `When price increases from $20 to $25, quantity supplied increases from 200 to 250 units:<br>\( \Delta Q_s = 250 - 200 = 50 \)<br>\( \Delta P = 25 - 20 = 5 \)<br>\( \frac{\Delta Q_s}{\Delta P} = \frac{50}{5} = 10 \)<br>Using initial values: \( E_s = 10 \times \frac{20}{200} = 1 \)`
+            },
+            {
+                id: 'tax-incidence',
+                title: 'Tax Incidence',
+                icon: 'scale-balanced',
+                category: 'policy',
+                content: `\[ \text{Consumer Burden} = \frac{E_s}{E_s + |E_d|} \] \[ \text{Producer Burden} = \frac{|E_d|}{E_s + |E_d|} \]`,
+                description: 'How tax burden is distributed between buyers and sellers',
+                example: `For a product with \( E_d = -0.8 \) and \( E_s = 1.2 \), and a $10 tax:<br>Consumer Burden = \( \frac{1.2}{1.2 + 0.8} = \frac{1.2}{2.0} = 0.6 \) or 60%<br>Producer Burden = \( \frac{0.8}{1.2 + 0.8} = \frac{0.8}{2.0} = 0.4 \) or 40%<br>Consumers pay $6 more, producers receive $4 less`
+            },
+            {
+                id: 'gdp-expenditure',
+                title: 'GDP Expenditure Approach',
+                icon: 'chart-pie',
+                category: 'macroeconomics',
+                content: `\[ GDP = C + I + G + (X - M) \]`,
+                description: 'Where: C = Consumption, I = Investment, G = Government Spending, X = Exports, M = Imports',
+                example: `If C = $10 trillion, I = $2 trillion, G = $3 trillion, X = $1.5 trillion, M = $2 trillion:<br>GDP = 10 + 2 + 3 + (1.5 - 2) = 15 - 0.5 = $14.5 trillion`
+            },
+            {
+                id: 'cpi',
+                title: 'Consumer Price Index',
+                icon: 'shopping-cart',
+                category: 'macroeconomics',
+                content: `\[ CPI = \frac{\text{Cost of Basket in Current Year}}{\text{Cost of Basket in Base Year}} \times 100 \]`,
+                description: 'Measures changes in the price level of a market basket of consumer goods',
+                example: `If a market basket costs $240 in the current year and $200 in the base year:<br>CPI = (240/200) × 100 = 120<br>This means prices have increased by 20% since the base year`
+            },
+            {
+                id: 'inflation-rate',
+                title: 'Inflation Rate',
+                icon: 'chart-line',
+                category: 'macroeconomics',
+                content: `\[ \text{Inflation Rate} = \frac{CPI_{\text{current}} - CPI_{\text{previous}}}{CPI_{\text{previous}}} \times 100\% \]`,
+                description: 'Percentage change in the CPI from one period to another',
+                example: `If CPI was 250 last year and is 260 this year:<br>Inflation Rate = (260-250)/250 × 100% = 10/250 × 100% = 4%`
+            },
+            {
+                id: 'unemployment-rate',
+                title: 'Unemployment Rate',
+                icon: 'user-friends',
+                category: 'macroeconomics',
+                content: `\[ \text{Unemployment Rate} = \frac{\text{Number of Unemployed}}{\text{Labor Force}} \times 100\% \]`,
+                description: 'Percentage of the labor force that is unemployed',
+                example: `If there are 8 million unemployed people in a labor force of 150 million:<br>Unemployment Rate = 8/150 × 100% = 5.33%`
+            }
+        ];
+
+        // --- DOM Elements ---
+        const appContainer = document.getElementById('app-container');
+        const quizModal = document.getElementById('quiz-modal');
+        const quizTitleEl = document.getElementById('quiz-title');
+        const quizContentEl = document.getElementById('quiz-content');
+        const assistantModal = document.getElementById('assistant-modal');
+        const assistantChat = document.getElementById('assistant-chat');
+        const assistantInput = document.getElementById('assistant-input');
+        const sendAssistantBtn = document.getElementById('send-assistant-btn');
+        const loginModal = document.getElementById('login-modal');
+
+        // --- Login Function ---
+        function login() {
+            const usernameInput = document.getElementById('username-input');
+            const username = usernameInput.value.trim();
+            
+            if (username) {
+                appState.username = username;
+                loginModal.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                renderApp();
+            }
+        }
+
+        // --- View Management ---
+        function setView(viewName) {
+            appState.currentView = viewName;
+            renderApp();
+        }
+
+        // --- Rendering Functions ---
+        function renderHeader() {
+            return `
+                <header class="gradient-bg text-white p-6 rounded-2xl shadow-lg mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center">
+                        <div class="text-center md:text-left mb-4 md:mb-0">
+                            <div class="flex items-center mb-2">
+								<img src="images/Economade.png" alt="Logo" class="mr-2" style="width: 30px;">
+                                <h1 class="text-4xl font-bold mb-2" style="margin-bottom: 0;">Economade</h1>
+                            </div> 
+							<p class="text-indigo-100">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Learn economics, one challenge at a time.</p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                <span class="mr-2">Welcome,</span>
+                                <span class="font-bold">${appState.username}</span>
+                            </div>
+                            <div class="bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                <span class="mr-2">Level:</span>
+                                <span class="font-bold">${appState.userLevel}</span>
+                            </div>
+                            <div class="bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center token-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="font-bold text-yellow-300">${appState.tokens}</span>
+                            </div>
+                            <button onclick="openAssistant()" class="bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center hover:bg-opacity-30 transition-colors">
+                                <i class="fas fa-robot mr-2"></i> Assistant
+                            </button>
+                        </div>
+                    </div>
+                </header>
+            `;
+        }
+
+        function renderNavbar() {
+            const views = [
+                { name: 'Home', id: 'home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+                { name: 'Supply & Demand', id: 'simulator', icon: 'M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z' },
+                { name: 'Lessons', id: 'lessons', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+                { name: 'Challenges', id: 'challenges', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+                { name: 'Formulas', id: 'formulas', icon: 'fas fa-calculator' }
+            ];
+            
+            const navButtons = views.map(view => `
+                <button
+                    class="nav-btn px-4 py-3 flex flex-col items-center text-sm font-medium transition-all
+                    ${appState.currentView === view.id ? 'active' : 'text-gray-500'}"
+                    onclick="setView('${view.id}')"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${view.icon}" />
+                    </svg>
+                    ${view.name}
+                </button>
+            `).join('');
+
+            return `
+                <nav class="flex bg-white rounded-2xl shadow-sm p-2 mb-6 overflow-x-auto">
+                    ${navButtons}
+                </nav>
+            `;
+        }
+
+        function renderHomeView() {
+            const progressPercentage = (appState.lessonsCompleted.length / lessonData.length) * 100;
+            
+            // Calculate next recommended lesson
+            const nextLesson = lessonData.find(lesson => !appState.lessonsCompleted.includes(lesson.id)) || lessonData[0];
+            
+            return `
+                <div class="p-6">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Welcome, ${appState.username}!</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="card p-6 flex flex-col items-center text-center">
+                            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2">Lessons Completed</h3>
+                            <p class="text-3xl font-bold text-indigo-600">${appState.lessonsCompleted.length}</p>
+                            <p class="text-gray-500 mt-1">out of ${lessonData.length}</p>
+                        </div>
+                        
+                        <div class="card p-6 flex flex-col items-center text-center">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2">Mastery Score</h3>
+                            <p class="text-3xl font-bold text-green-600">${calculateMasteryScore()}%</p>
+                            <p class="text-gray-500 mt-1">Current level</p>
+                        </div>
+                        
+                        <div class="card p-6 flex flex-col items-center text-center">
+                            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2">Tokens Earned</h3>
+                            <p class="text-3xl font-bold text-amber-600">${appState.tokens}</p>
+                            <p class="text-gray-500 mt-1">Keep learning!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6 mb-8">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Your Learning Progress</h3>
+                        <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+                            <div class="bg-indigo-600 h-4 rounded-full" style="width: ${progressPercentage}%"></div>
+                        </div>
+                        <p class="text-gray-600 text-sm">${Math.round(progressPercentage)}% complete</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Continue Learning</h3>
+                            <p class="text-gray-600 mb-4">Pick up where you left off and continue your economics journey.</p>
+                            <button onclick="setView('lessons')" class="w-full px-6 py-3 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition-colors">
+                                Resume Lessons
+                            </button>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Practice Skills</h3>
+                            <p class="text-gray-600 mb-4">Test your knowledge with interactive challenges and simulations.</p>
+                            <button onclick="setView('challenges')" class="w-full px-6 py-3 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition-colors">
+                                Try Challenges
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-600">Recommended Next Lesson</h3>
+                        <div class="flex items-center">
+                            <i class="${nextLesson.icon} text-2xl text-indigo-500 mr-4"></i>
+                            <div>
+                                <h4 class="font-semibold text-lg">${nextLesson.title}</h4>
+                                <p class="text-gray-600">${nextLesson.content.substring(0, 100)}...</p>
+                            </div>
+                            <button onclick="showLesson('${nextLesson.id}')" class="ml-auto px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200 transition-colors">
+                                Start Lesson
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSimulatorView() {
+            return `
+                <div class="p-6">
+                    <h2 class="text-3xl font-bold mb-4 text-gray-800">Supply & Demand Simulator</h2>
+                    <p class="text-lg mb-6 text-gray-600">Drag the demand (red) and supply (blue) curves to see how prices and quantities change in real-time. The intersection point shows the market equilibrium.</p>
+                    
+                    <div class="card p-4 mb-6">
+                        <div class="flex flex-wrap gap-4 mb-4">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
+                                <span class="text-sm font-medium">Demand Curve</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+                                <span class="text-sm font-medium">Supply Curve</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+                                <span class="text-sm font-medium">Equilibrium Point</span>
+                            </div>
+                        </div>
+                        
+                        <div class="canvas-container">
+                            <canvas id="simulatorCanvas" class="w-full h-full"></canvas>
+                            <div id="statusMessage" class="mt-4 p-3 bg-indigo-100 text-indigo-700 rounded-lg text-center font-medium">Drag a curve to begin!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Demand Shifters</h3>
+                            <ul class="list-disc list-inside text-gray-600 space-y-2">
+                                <li>Changes in consumer income</li>
+                                <li>Changes in tastes and preferences</li>
+                                <li>Prices of related goods</li>
+                                <li>Expectations of future prices</li>
+                                <li>Number of buyers in the market</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Supply Shifters</h3>
+                            <ul class="list-disc list-inside text-gray-600 space-y-2">
+                                <li>Changes in production technology</li>
+                                <li>Prices of inputs and resources</li>
+                                <li>Number of sellers in the market</li>
+                                <li>Expectations of future prices</li>
+                                <li>Government policies (taxes, subsidies)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-600">Advanced Simulation: Tax Incidence</h3>
+                        <p class="text-gray-600 mb-4">See how taxes affect market equilibrium and how the burden is shared between buyers and sellers.</p>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Tax Amount ($):</label>
+                            <input type="range" id="tax-amount" min="0" max="50" value="10" class="w-full">
+                            <div class="flex justify-between text-sm text-gray-500">
+                                <span>$0</span>
+                                <span id="tax-value">$10</span>
+                                <span>$50</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-red-50 p-3 rounded-lg">
+                                <p class="font-medium text-red-700">Consumer Burden</p>
+                                <p id="consumer-burden" class="text-2xl font-bold text-red-600">$6.00</p>
+                                <p class="text-sm text-red-600">Price buyers pay increases by this amount</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">Producer Burden</p>
+                                <p id="producer-burden" class="text-2xl font-bold text-blue-600">$4.00</p>
+                                <p class="text-sm text-blue-600">Price sellers receive decreases by this amount</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 bg-yellow-50 p-3 rounded-lg">
+                            <p class="font-medium text-yellow-700">Deadweight Loss</p>
+                            <p id="deadweight-loss" class="text-lg font-bold text-yellow-600">$25.00</p>
+                            <p class="text-sm text-yellow-600">Economic value lost due to reduced transactions</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLessonsView() {
+            const lessonList = lessonData.map(lesson => {
+                const isCompleted = appState.lessonsCompleted.includes(lesson.id);
+                const progress = appState.userProgress[lesson.id] || { completed: false, score: 0 };
+                
+                return `
+                    <div class="formula-card">
+                        <div class="formula-header p-4 flex items-center">
+                            <i class="${lesson.icon} text-xl mr-3"></i>
+                            <h2 class="text-xl font-bold">${lesson.title}</h2>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center mb-2">
+                                ${isCompleted ? `
+                                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full mr-2">
+                                        Completed
+                                    </span>
+                                ` : ''}
+                                <span class="text-sm font-medium text-gray-500">Mastery: ${progress.score}%</span>
+                            </div>
+                            <p class="text-gray-600 mb-4">${lesson.content.substring(0, 150)}...</p>
+                            <div class="flex space-x-2">
+                                <button
+                                    class="operation-btn flex-1 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium"
+                                    onclick="showLesson('${lesson.id}')"
+                                >
+                                    <i class="fas fa-eye mr-2"></i>${isCompleted ? 'Review' : 'Start'}
+                                </button>
+                                <button
+                                    class="operation-btn py-2 px-3 bg-green-100 text-green-700 rounded-lg font-medium"
+                                    onclick="startQuiz('${lesson.id}')"
+                                    title="Take Quiz"
+                                >
+                                    <i class="fas fa-question"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="p-6">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Economics Lessons</h2>
+                    <p class="text-lg mb-6 text-gray-600">Progress through these lessons to build your understanding of economic principles.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${lessonList}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderChallengesView() {
+            return `
+                <div class="p-6">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Economic Challenges</h2>
+                    <p class="text-lg mb-6 text-gray-600">Test your knowledge with these interactive challenges.</p>
+                    
+                    <div class="formula-card mb-6">
+                        <div class="formula-header p-4 flex items-center">
+                            <i class="fas fa-bolt text-xl mr-3"></i>
+                            <h2 class="text-xl font-bold">Elasticity Challenges</h2>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-gray-600 mb-4">Test your understanding of price elasticity with these real-world scenarios.</p>
+                            
+                            <div class="space-y-4">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="font-medium mb-2">1. The price of insulin increases by 30%. How would you expect demand to respond?</p>
+                                    <div class="space-y-2">
+                                        <button class="w-full text-left p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkElasticityAnswer(0, 0, 2)">
+                                            Demand decreases significantly
+                                        </button>
+                                        <button class="w-full text-left p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkElasticityAnswer(0, 1, 2)">
+                                            Demand decreases slightly
+                                        </button>
+                                        <button class="w-full text-left p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkElasticityAnswer(0, 2, 2)">
+                                            Demand remains almost unchanged
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="font-medium mb-2">2. A cruise line offers a 25% discount on Caribbean vacations during hurricane season. How would you expect demand to respond?</p>
+                                    <div class="space-y-2">
+                                        <button class="w-full text-left p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkElasticityAnswer(1, 0, 0)">
+                                            Demand increases significantly
+                                        </button>
+                                        <button class="w-full text-left p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkElasticityAnswer(1, 1, 0)">
+                                            Demand increases slightly
+                                        </button>
+                                        <button class="w-full text-left p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkElasticityAnswer(1, 2, 0)">
+                                            Demand remains almost unchanged
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="formula-card">
+                        <div class="formula-header p-4 flex items-center">
+                            <i class="fas fa-chart-bar text-xl mr-3"></i>
+                            <h2 class="text-xl font-bold">GDP Calculation Challenge</h2>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-gray-600 mb-4">Calculate the GDP for a hypothetical economy using the expenditure approach.</p>
+                            
+                            <div class="bg-indigo-50 p-4 rounded-lg mb-4">
+                                <p class="font-medium mb-2">Economic Data:</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                    <div>Consumption (C): <span class="font-semibold">$8,500 billion</span></div>
+                                    <div>Investment (I): <span class="font-semibold">$2,300 billion</span></div>
+                                    <div>Government Spending (G): <span class="font-semibold">$3,200 billion</span></div>
+                                    <div>Exports (X): <span class="font-semibold">$1,800 billion</span></div>
+                                    <div>Imports (M): <span class="font-semibold">$2,100 billion</span></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-2">What is the GDP?</label>
+                                <input type="number" id="gdp-challenge-input" class="w-full p-3 border rounded-lg" placeholder="Enter GDP in billions">
+                            </div>
+                            
+                            <button onclick="checkGDPChallenge()" class="w-full py-3 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600 transition-colors">
+                                Check Answer
+                            </button>
+                            
+                            <p id="gdp-challenge-feedback" class="mt-2 text-center font-semibold hidden"></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderFormulasView() {
+            const formulaCategories = [...new Set(formulasData.map(formula => formula.category))];
+            
+            return `
+                <div class="p-6">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Economics Formulas</h2>
+                    <p class="text-lg mb-6 text-gray-600">Essential economic formulas with practical examples.</p>
+                    
+                    <div class="flex flex-wrap justify-center gap-2 mb-8">
+                        <button class="nav-btn px-4 py-2 rounded-lg bg-indigo-500 text-white font-medium" data-category="all">
+                            <i class="fas fa-calculator mr-2"></i>All Formulas
+                        </button>
+                        ${formulaCategories.map(category => `
+                            <button class="nav-btn px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium" data-category="${category}">
+                                <i class="fas fa-${category === 'demand' ? 'chart-line' : category === 'supply' ? 'arrow-up' : category === 'equilibrium' ? 'balance-scale' : category === 'elasticity' ? 'percentage' : 'chart-line'} mr-2"></i>${category.charAt(0).toUpperCase() + category.slice(1)}
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="formulas-container">
+                        ${formulasData.map(formula => `
+                            <div class="formula-card" data-category="${formula.category}">
+                                <div class="formula-header p-4 flex items-center">
+                                    <i class="fas fa-${formula.icon} text-xl mr-3"></i>
+                                    <h2 class="text-xl font-bold">${formula.title}</h2>
+                                </div>
+                                <div class="p-4">
+                                    <div class="math-container">
+                                        ${formula.content}
+                                    </div>
+                                    <p class="text-gray-600 mb-3">${formula.description}</p>
+                                    <div class="example-box p-4 mt-4 hidden">
+                                        <h3 class="font-bold text-indigo-600 mb-2">Example:</h3>
+                                        <p>${formula.example}</p>
+                                    </div>
+                                    <button class="operation-btn mt-2 w-full py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium">
+                                        <i class="fas fa-eye mr-2"></i>Show Example
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-10 p-6 bg-white rounded-xl shadow-md">
+                        <h2 class="text-2xl font-bold text-indigo-700 mb-4">Key Economic Concepts</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-indigo-50 rounded-lg">
+                                <h3 class="font-bold text-indigo-600 mb-2">Elasticity Interpretation</h3>
+                                <ul class="list-disc list-inside text-gray-700">
+                                    <li>|E| > 1: Elastic (responsive to price changes)</li>
+                                    <li>|E| = 1: Unit elastic</li>
+                                    <li>|E| < 1: Inelastic (not very responsive)</li>
+                                    <li>E = 0: Perfectly inelastic</li>
+                                    <li>E = ∞: Perfectly elastic</li>
+                                </ul>
+                            </div>
+                            <div class="p-4 bg-green-50 rounded-lg">
+                                <h3 class="font-bold text-green-600 mb-2">Income Elasticity & Goods</h3>
+                                <ul class="list-disc list-inside text-gray-700">
+                                    <li>E<sub>i</sub> > 1: Luxury goods</li>
+                                    <li>0 < E<sub>i</sub> < 1: Normal goods</li>
+                                    <li>E<sub>i</sub> < 0: Inferior goods</li>
+                                </ul>
+                            </div>
+                            <div class="p-4 bg-purple-50 rounded-lg">
+                                <h3 class="font-bold text-purple-600 mb-2">Cross-Price Elasticity</h3>
+                                <ul class="list-disc list-inside text-gray-700">
+                                    <li>E<sub>xy</sub> > 0: Substitute goods</li>
+                                    <li>E<sub>xy</sub> < 0: Complementary goods</li>
+                                    <li>E<sub>xy</sub> = 0: Unrelated goods</li>
+                                </ul>
+                            </div>
+                            <div class="p-4 bg-amber-50 rounded-lg">
+                                <h3 class="font-bold text-amber-600 mb-2">Market Changes</h3>
+                                <ul class="list-disc list-inside text-gray-700">
+                                    <li>Increase in demand: Curve shifts right</li>
+                                    <li>Decrease in demand: Curve shifts left</li>
+                                    <li>Increase in supply: Curve shifts right</li>
+                                    <li>Decrease in supply: Curve shifts left</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Main Render Function ---
+        function renderApp() {
+            let content = '';
+            switch(appState.currentView) {
+                case 'home':
+                    content = renderHomeView();
+                    break;
+                case 'simulator':
+                    content = renderSimulatorView();
+                    break;
+                case 'lessons':
+                    content = renderLessonsView();
+                    break;
+                case 'challenges':
+                    content = renderChallengesView();
+                    break;
+                case 'formulas':
+                    content = renderFormulasView();
+                    break;
+                default:
+                    content = renderHomeView();
+            }
+            
+            appContainer.innerHTML = renderHeader() + renderNavbar() + content;
+            
+            if (appState.currentView === 'simulator') {
+                setTimeout(setupSimulator, 10);
+                setupTaxSimulator();
+            }
+            
+            if (appState.currentView === 'formulas') {
+                // Add event listeners for formula filtering
+                document.querySelectorAll('[data-category]').forEach(button => {
+                    if (button.tagName === 'BUTTON') {
+                        button.addEventListener('click', function() {
+                            const category = this.getAttribute('data-category');
+                            filterFormulas(category);
+                        });
+                    }
+                });
+                
+                // Add event listeners for example toggling
+                document.querySelectorAll('.operation-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const exampleBox = this.previousElementSibling;
+                        const isHidden = exampleBox.classList.contains('hidden');
+                        
+                        if (isHidden) {
+                            exampleBox.classList.remove('hidden');
+                            this.innerHTML = '<i class="fas fa-eye-slash mr-2"></i>Hide Example';
+                        } else {
+                            exampleBox.classList.add('hidden');
+                            this.innerHTML = '<i class="fas fa-eye mr-2"></i>Show Example';
+                        }
+                    });
+                });
+            }
+        }
+
+        function filterFormulas(category) {
+            const formulaCards = document.querySelectorAll('.formula-card');
+            
+            formulaCards.forEach(card => {
+                if (category === 'all') {
+                    card.style.display = 'block';
+                } else {
+                    if (card.getAttribute('data-category') === category) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Update active button
+            document.querySelectorAll('[data-category]').forEach(button => {
+                if (button.tagName === 'BUTTON') {
+                    if (button.getAttribute('data-category') === category) {
+                        button.classList.remove('bg-gray-200', 'text-gray-700');
+                        button.classList.add('bg-indigo-500', 'text-white');
+                    } else {
+                        button.classList.remove('bg-indigo-500', 'text-white');
+                        button.classList.add('bg-gray-200', 'text-gray-700');
+                    }
+                }
+            });
+        }
+
+        // --- Simulator Functions ---
+        let isDragging = false;
+        let activeCurve = null;
+        let demandShift = 0;
+        let supplyShift = 0;
+        let canvas, ctx;
+        
+        function setupSimulator() {
+            canvas = document.getElementById('simulatorCanvas');
+            if (!canvas) return;
+            
+            ctx = canvas.getContext('2d');
+            const container = canvas.parentElement;
+            
+            const setCanvasSize = () => {
+                canvas.width = container.clientWidth;
+                canvas.height = 400;
+                drawSimulator();
+            };
+            
+            setCanvasSize();
+            window.addEventListener('resize', setCanvasSize);
+            
+            // Event listeners for mouse
+            canvas.addEventListener('mousedown', onPointerDown);
+            canvas.addEventListener('mousemove', onPointerMove);
+            canvas.addEventListener('mouseup', onPointerUp);
+            canvas.addEventListener('mouseleave', onPointerUp);
+            
+            // Event listeners for touch
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                onPointerDown(e.touches[0]);
+            }, { passive: false });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                onPointerMove(e.touches[0]);
+            }, { passive: false });
+            
+            canvas.addEventListener('touchend', onPointerUp);
+            
+            drawSimulator();
+        }
+        
+        function drawSimulator() {
+            if (!canvas || !ctx) return;
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            const padding = 50;
+            const numPoints = 100;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, w, h);
+            
+            // Draw grid
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            
+            // Vertical grid lines
+            for (let i = padding; i < w - padding; i += (w - 2 * padding) / 10) {
+                ctx.beginPath();
+                ctx.moveTo(i, padding);
+                ctx.lineTo(i, h - padding);
+                ctx.stroke();
+            }
+            
+            // Horizontal grid lines
+            for (let i = padding; i < h - padding; i += (h - 2 * padding) / 10) {
+                ctx.beginPath();
+                ctx.moveTo(padding, i);
+                ctx.lineTo(w - padding, i);
+                ctx.stroke();
+            }
+            
+            // Draw Axes
+            ctx.beginPath();
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding); // x-axis
+            ctx.lineTo(w - padding - 10, h - padding - 5);
+            ctx.moveTo(w - padding, h - padding);
+            ctx.lineTo(w - padding - 10, h - padding + 5);
+            
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(padding, padding); // y-axis
+            ctx.lineTo(padding - 5, padding + 10);
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding + 5, padding + 10);
+            
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Axis labels
+            ctx.font = '16px Inter';
+            ctx.fillStyle = '#374151';
+            ctx.fillText('Quantity (Q)', w / 2, h - 15);
+            ctx.save();
+            ctx.translate(15, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Price (P)', 0, 0);
+            ctx.restore();
+
+            // Draw Supply and Demand curves
+            const dPoints = [];
+            const sPoints = [];
+            
+            for (let i = 0; i < numPoints; i++) {
+                const x = padding + (i / numPoints) * (w - 2 * padding);
+                
+                // Demand Curve: P = a - bQ (downward sloping)
+                const dP = h - padding - (i / numPoints) * (h - 2 * padding) + demandShift;
+                dPoints.push({ x: x, y: dP });
+
+                // Supply Curve: P = c + dQ (upward sloping)
+                const sP = padding + (i / numPoints) * (h - 2 * padding) - supplyShift;
+                sPoints.push({ x: x, y: sP });
+            }
+
+            // Demand Curve (Red)
+            ctx.beginPath();
+            ctx.moveTo(dPoints[0].x, dPoints[0].y);
+            dPoints.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Draw handle for demand curve
+            const dHandleIndex = Math.floor(dPoints.length * 0.7);
+            ctx.beginPath();
+            ctx.arc(dPoints[dHandleIndex].x, dPoints[dHandleIndex].y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText('D', dPoints[dPoints.length - 1].x + 10, dPoints[dPoints.length - 1].y);
+
+            // Supply Curve (Blue)
+            ctx.beginPath();
+            ctx.moveTo(sPoints[0].x, sPoints[0].y);
+            sPoints.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Draw handle for supply curve
+            const sHandleIndex = Math.floor(sPoints.length * 0.7);
+            ctx.beginPath();
+            ctx.arc(sPoints[sHandleIndex].x, sPoints[sHandleIndex].y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#3b82f6';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillText('S', sPoints[sPoints.length - 1].x + 10, sPoints[sPoints.length - 1].y);
+            
+            // Find and draw Equilibrium
+            let eqX, eqY;
+            for (let i = 0; i < numPoints; i++) {
+                if (sPoints[i].y >= dPoints[i].y) {
+                    eqX = sPoints[i].x;
+                    eqY = sPoints[i].y;
+                    break;
+                }
+            }
+
+            if (eqX) {
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.arc(eqX, eqY, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Dotted lines to axes
+                ctx.beginPath();
+                ctx.strokeStyle = '#9ca3af';
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(eqX, eqY);
+                ctx.lineTo(eqX, h - padding);
+                ctx.moveTo(eqX, eqY);
+                ctx.lineTo(padding, eqY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Labels for equilibrium
+                ctx.fillStyle = '#065f46';
+                ctx.font = 'bold 14px Inter';
+                ctx.fillText('P*', padding - 25, eqY + 4);
+                ctx.fillText('Q*', eqX, h - padding + 25);
+                
+                // Display equilibrium values
+                const priceValue = ((h - padding - eqY) / (h - 2 * padding) * 100).toFixed(1);
+                const quantityValue = ((eqX - padding) / (w - 2 * padding) * 100).toFixed(1);
+                
+                ctx.fillStyle = '#374151';
+                ctx.font = '14px Inter';
+                ctx.fillText(`Equilibrium Price: ${priceValue}`, w - 200, padding + 20);
+                ctx.fillText(`Equilibrium Quantity: ${quantityValue}`, w - 200, padding + 40);
+            }
+        }
+        
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+        
+        function onPointerDown(e) {
+            const pos = getMousePos(e);
+            const w = canvas.width;
+            const padding = 50;
+            
+            // Check if clicking near demand curve handle
+            const dHandleX = padding + 0.7 * (w - 2 * padding);
+            const dHandleY = canvas.height - padding - 0.7 * (canvas.height - 2 * padding) + demandShift;
+            
+            // Check if clicking near supply curve handle
+            const sHandleX = padding + 0.7 * (w - 2 * padding);
+            const sHandleY = padding + 0.7 * (canvas.height - 2 * padding) - supplyShift;
+            
+            const dDistance = Math.sqrt(Math.pow(pos.x - dHandleX, 2) + Math.pow(pos.y - dHandleY, 2));
+            const sDistance = Math.sqrt(Math.pow(pos.x - sHandleX, 2) + Math.pow(pos.y - sHandleY, 2));
+            
+            if (dDistance < 15) {
+                activeCurve = 'demand';
+                isDragging = true;
+                document.getElementById('statusMessage').textContent = 'Dragging the demand curve...';
+            } else if (sDistance < 15) {
+                activeCurve = 'supply';
+                isDragging = true;
+                document.getElementById('statusMessage').textContent = 'Dragging the supply curve...';
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!isDragging) return;
+            
+            const pos = getMousePos(e);
+            const sensitivity = 0.5;
+            
+            if (activeCurve === 'demand') {
+                demandShift = (pos.y - (canvas.height / 2)) * sensitivity;
+            } else if (activeCurve === 'supply') {
+                supplyShift = (pos.y - (canvas.height / 2)) * sensitivity;
+            }
+            
+            drawSimulator();
+            updateTaxSimulator();
+        }
+
+        function onPointerUp() {
+            isDragging = false;
+            activeCurve = null;
+            document.getElementById('statusMessage').textContent = 'Drag a curve to see how equilibrium changes!';
+        }
+
+        // --- Tax Simulator Functions ---
+        function setupTaxSimulator() {
+            const taxSlider = document.getElementById('tax-amount');
+            if (taxSlider) {
+                taxSlider.addEventListener('input', function() {
+                    document.getElementById('tax-value').textContent = '$' + this.value;
+                    updateTaxSimulator();
+                });
+            }
+            updateTaxSimulator();
+        }
+
+        function updateTaxSimulator() {
+            // Simplified tax incidence calculation based on curve slopes
+            // In a real implementation, this would use actual elasticity values
+            const taxAmount = parseInt(document.getElementById('tax-amount').value);
+            const demandElasticity = 0.8; // Example values
+            const supplyElasticity = 1.2;
+            
+            const totalElasticity = demandElasticity + supplyElasticity;
+            const consumerBurden = (supplyElasticity / totalElasticity) * taxAmount;
+            const producerBurden = (demandElasticity / totalElasticity) * taxAmount;
+            
+            // Simplified deadweight loss calculation
+            const deadweightLoss = taxAmount * 0.25; // Simplified formula
+            
+            document.getElementById('consumer-burden').textContent = '$' + consumerBurden.toFixed(2);
+            document.getElementById('producer-burden').textContent = '$' + producerBurden.toFixed(2);
+            document.getElementById('deadweight-loss').textContent = '$' + deadweightLoss.toFixed(2);
+        }
+
+        // --- Lesson Functions ---
+        function showLesson(lessonId) {
+            const lesson = lessonData.find(l => l.id === lessonId);
+            if (!lesson) return;
+
+            quizTitleEl.textContent = lesson.title;
+            
+            let content = lesson.content;
+            
+            // Add exercises section
+            if (lesson.exercises && lesson.exercises.length > 0) {
+                content += `<div class="mt-8 pt-6 border-t border-gray-200">
+                    <h3 class="text-xl font-semibold text-indigo-700 mb-4">Practice Exercises</h3>`;
+                
+                lesson.exercises.forEach((exercise, index) => {
+                    content += `<div class="mb-6 p-4 bg-gray-50 rounded-lg">`;
+                    
+                    if (exercise.type === 'multiple-choice') {
+                        content += `<p class="font-medium mb-3">${index + 1}. ${exercise.question}</p>`;
+                        exercise.options.forEach((option, optIndex) => {
+                            content += `<button class="w-full text-left p-3 mb-2 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkExerciseAnswer('${lessonId}', ${index}, ${optIndex}, ${exercise.answerIndex}, this)">
+                                ${option}
+                            </button>`;
+                        });
+                    } else if (exercise.type === 'true-false') {
+                        content += `<p class="font-medium mb-3">${index + 1}. ${exercise.statement}</p>`;
+                        content += `<div class="flex space-x-4">
+                            <button class="flex-1 p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkExerciseAnswer('${lessonId}', ${index}, true, ${exercise.answer}, this)">True</button>
+                            <button class="flex-1 p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkExerciseAnswer('${lessonId}', ${index}, false, ${exercise.answer}, this)">False</button>
+                        </div>`;
+                    } else if (exercise.type === 'calculation') {
+                        content += `<p class="font-medium mb-3">${index + 1}. ${exercise.question}</p>`;
+                        content += `<div class="mb-3">
+                            <input type="number" id="exercise-${lessonId}-${index}" class="w-full p-3 border rounded-lg" placeholder="Enter your answer">
+                        </div>`;
+                        content += `<button class="w-full py-2 bg-indigo-500 text-white rounded-lg font-medium" onclick="checkCalculationAnswer('${lessonId}', ${index}, ${exercise.answer}, this)">Check Answer</button>`;
+                    } else if (exercise.type === 'matching') {
+                        content += `<p class="font-medium mb-3">${index + 1}. ${exercise.prompt}</p>`;
+                        exercise.pairs.forEach((pair, pairIndex) => {
+                            content += `<div class="flex items-center mb-2">
+                                <span class="w-1/2 p-2 bg-white rounded-l-lg border">${pair.scenario}</span>
+                                <select class="w-1/2 p-2 border rounded-r-lg">
+                                    ${exercise.pairs.map(p => `<option value="${p.effect}">${p.effect}</option>`).join('')}
+                                </select>
+                            </div>`;
+                        });
+                        content += `<button class="w-full py-2 bg-indigo-500 text-white rounded-lg font-medium mt-2" onclick="checkMatchingExercise('${lessonId}', ${index}, this)">Check Matching</button>`;
+                    }
+                    
+                    content += `</div>`;
+                });
+                
+                content += `</div>`;
+            }
+            
+            // Add challenge section
+            if (lesson.challenge) {
+                content += `<div class="mt-8 pt-6 border-t border-gray-200">
+                    <h3 class="text-xl font-semibold text-indigo-700 mb-4">Lesson Challenge</h3>`;
+                
+                if (lesson.challenge.type === 'quiz') {
+                    content += `<p class="font-medium mb-3">${lesson.challenge.question}</p>`;
+                    lesson.challenge.options.forEach((option, index) => {
+                        content += `<button class="w-full text-left p-3 mb-2 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkQuizAnswer('${lessonId}', ${index}, ${lesson.challenge.answerIndex}, this)">
+                            ${option}
+                        </button>`;
+                    });
+                } else if (lesson.challenge.type === 'interactive') {
+                    content += `<p class="font-medium mb-3">${lesson.challenge.description}</p>`;
+                    content += `<button class="w-full py-3 bg-indigo-500 text-white rounded-lg font-medium" onclick="closeModalAndExecuteAction()">
+                        ${lesson.challenge.buttonText}
+                    </button>`;
+                }
+                
+                content += `</div>`;
+            }
+            
+            quizContentEl.innerHTML = content;
+            quizModal.classList.remove('hidden');
+            quizModal.classList.add('flex');
+            
+            // Re-render MathJax
+            if (window.MathJax) {
+                MathJax.typeset();
+            }
+        }
+
+        function startQuiz(lessonId) {
+            const lesson = lessonData.find(l => l.id === lessonId);
+            if (!lesson) return;
+
+            quizTitleEl.textContent = `${lesson.title} - Quiz`;
+            
+            let quizContent = `<div class="mb-6">
+                <p class="text-lg mb-4">Test your understanding of ${lesson.title} with this quiz.</p>
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                    <p class="font-medium text-indigo-700">Instructions:</p>
+                    <ul class="list-disc list-inside text-indigo-600 mt-1">
+                        <li>Answer all questions to complete the quiz</li>
+                        <li>You'll earn tokens for correct answers</li>
+                        <li>Your score will be saved to track your progress</li>
+                    </ul>
+                </div>
+            </div>`;
+            
+            // Add questions from exercises and challenge
+            let questionNumber = 1;
+            const questions = [];
+            
+            // Add challenge as first question
+            if (lesson.challenge && lesson.challenge.type === 'quiz') {
+                questions.push({
+                    type: 'multiple-choice',
+                    question: lesson.challenge.question,
+                    options: lesson.challenge.options,
+                    answerIndex: lesson.challenge.answerIndex,
+                    explanation: lesson.challenge.explanation
+                });
+            }
+            
+            // Add exercises as additional questions
+            if (lesson.exercises) {
+                lesson.exercises.forEach(exercise => {
+                    if (exercise.type === 'multiple-choice' || exercise.type === 'true-false') {
+                        questions.push({
+                            type: exercise.type,
+                            question: exercise.type === 'true-false' ? exercise.statement : exercise.question,
+                            options: exercise.options || ['True', 'False'],
+                            answerIndex: exercise.answerIndex !== undefined ? exercise.answerIndex : (exercise.answer ? 0 : 1),
+                            explanation: exercise.explanation
+                        });
+                    }
+                });
+            }
+            
+            // Display questions
+            questions.forEach((q, index) => {
+                quizContent += `<div class="mb-6 p-4 bg-gray-50 rounded-lg" id="question-${index}">
+                    <p class="font-medium mb-3">${questionNumber}. ${q.question}</p>`;
+                
+                if (q.type === 'multiple-choice') {
+                    q.options.forEach((option, optIndex) => {
+                        quizContent += `<button class="w-full text-left p-3 mb-2 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkQuizQuestion('${lessonId}', ${index}, ${optIndex}, ${q.answerIndex}, this)">
+                            ${option}
+                        </button>`;
+                    });
+                } else if (q.type === 'true-false') {
+                    quizContent += `<div class="flex space-x-4">
+                        <button class="flex-1 p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkQuizQuestion('${lessonId}', ${index}, 0, ${q.answerIndex}, this)">True</button>
+                        <button class="flex-1 p-3 rounded-lg bg-white shadow-sm hover:bg-gray-100 transition-colors" onclick="checkQuizQuestion('${lessonId}', ${index}, 1, ${q.answerIndex}, this)">False</button>
+                    </div>`;
+                }
+                
+                quizContent += `</div>`;
+                questionNumber++;
+            });
+            
+            quizContent += `<button id="quiz-complete-btn" class="w-full py-3 bg-indigo-500 text-white rounded-lg font-medium hidden" onclick="completeQuiz('${lessonId}')">Complete Quiz</button>`;
+            
+            quizContentEl.innerHTML = quizContent;
+            quizModal.classList.remove('hidden');
+            quizModal.classList.add('flex');
+        }
+
+        function checkQuizQuestion(lessonId, questionIndex, selectedIndex, correctAnswerIndex, buttonEl) {
+            const questionDiv = buttonEl.closest(`#question-${questionIndex}`);
+            const allButtons = questionDiv.querySelectorAll('button');
+            allButtons.forEach(btn => btn.disabled = true);
+
+            const isCorrect = selectedIndex === correctAnswerIndex;
+            
+            if (isCorrect) {
+                buttonEl.classList.remove('bg-white', 'hover:bg-gray-100');
+                buttonEl.classList.add('bg-green-500', 'text-white');
+                
+                // Add correct indicator
+                questionDiv.innerHTML += `<div class="mt-2 p-2 bg-green-100 text-green-700 rounded-lg text-sm">
+                    <i class="fas fa-check mr-1"></i> Correct!
+                </div>`;
+            } else {
+                buttonEl.classList.remove('bg-white', 'hover:bg-gray-100');
+                buttonEl.classList.add('bg-red-500', 'text-white');
+                
+                // Highlight correct answer
+                allButtons[correctAnswerIndex].classList.add('bg-green-500', 'text-white');
+                
+                // Add incorrect indicator
+                questionDiv.innerHTML += `<div class="mt-2 p-2 bg-red-100 text-red-700 rounded-lg text-sm">
+                    <i class="fas fa-times mr-1"></i> Incorrect. The right answer is highlighted.
+                </div>`;
+            }
+            
+            // Check if all questions are answered
+            const allQuestions = document.querySelectorAll('[id^="question-"]');
+            const answeredQuestions = document.querySelectorAll('[id^="question-"] button:disabled');
+            
+            if (allQuestions.length === answeredQuestions.length) {
+                document.getElementById('quiz-complete-btn').classList.remove('hidden');
+            }
+        }
+
+        function completeQuiz(lessonId) {
+            // Calculate score based on correct answers
+            const questions = document.querySelectorAll('[id^="question-"]');
+            let correctAnswers = 0;
+            
+            questions.forEach(q => {
+                if (q.querySelector('.bg-green-500')) {
+                    correctAnswers++;
+                }
+            });
+            
+            const score = Math.round((correctAnswers / questions.length) * 100);
+            
+            // Award tokens
+            const tokensEarned = Math.round(score / 10) * 5; // 5 tokens per 10% score
+            appState.tokens += tokensEarned;
+            
+            // Update progress
+            if (!appState.userProgress[lessonId]) {
+                appState.userProgress[lessonId] = { completed: true, score: score };
+            } else {
+                appState.userProgress[lessonId].completed = true;
+                appState.userProgress[lessonId].score = Math.max(appState.userProgress[lessonId].score, score);
+            }
+            
+            // Mark lesson as completed if not already
+            if (!appState.lessonsCompleted.includes(lessonId)) {
+                appState.lessonsCompleted.push(lessonId);
+            }
+            
+            // Show results
+            quizContentEl.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-trophy text-4xl text-green-500"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-green-600 mb-2">Quiz Complete!</h3>
+                    <p class="text-lg mb-4">Your score: <span class="font-bold">${score}%</span></p>
+                    <p class="text-lg mb-6">You earned <span class="font-bold text-amber-600">${tokensEarned} tokens</span></p>
+                    <button class="px-6 py-3 bg-indigo-500 text-white rounded-lg font-medium" onclick="quizModal.classList.add('hidden'); renderApp();">
+                        Continue Learning
+                    </button>
+                </div>
+            `;
+        }
+
+        function checkQuizAnswer(lessonId, selectedIndex, correctAnswerIndex, buttonEl) {
+            const allButtons = Array.from(buttonEl.parentElement.querySelectorAll('button'));
+            allButtons.forEach(btn => btn.disabled = true);
+
+            const isCorrect = selectedIndex === correctAnswerIndex;
+            const lesson = lessonData.find(l => l.id === lessonId);
+            
+            if (isCorrect) {
+                buttonEl.classList.remove('bg-white', 'hover:bg-gray-50');
+                buttonEl.classList.add('bg-green-500', 'text-white');
+                
+                const tokensEarned = 10;
+                appState.tokens += tokensEarned;
+                
+                if (!appState.lessonsCompleted.includes(lessonId)) {
+                    appState.lessonsCompleted.push(lessonId);
+                }
+                
+                // Update progress
+                if (!appState.userProgress[lessonId]) {
+                    appState.userProgress[lessonId] = { completed: true, score: 100 };
+                } else {
+                    appState.userProgress[lessonId].completed = true;
+                    appState.userProgress[lessonId].score = 100;
+                }
+                
+                const feedbackEl = document.createElement('div');
+                feedbackEl.className = 'mt-4 p-3 bg-green-50 border border-green-200 rounded-lg';
+                feedbackEl.innerHTML = `
+                    <p class="text-green-700 font-medium">Correct! <span class="font-bold">+${tokensEarned} tokens</span></p>
+                    ${lesson.challenge.explanation ? `<p class="text-green-600 mt-1">${lesson.challenge.explanation}</p>` : ''}
+                `;
+                
+                quizContentEl.appendChild(feedbackEl);
+            } else {
+                buttonEl.classList.remove('bg-white', 'hover:bg-gray-50');
+                buttonEl.classList.add('bg-red-500', 'text-white');
+                
+                const tokensDeducted = appState.userLevel === 'Novice' ? 0 : 5;
+                appState.tokens = Math.max(0, appState.tokens - tokensDeducted);
+                
+                const feedbackEl = document.createElement('div');
+                feedbackEl.className = 'mt-4 p-3 bg-red-50 border border-red-200 rounded-lg';
+                feedbackEl.innerHTML = `
+                    <p class="text-red-700 font-medium">Incorrect. <span class="font-bold">-${tokensDeducted} tokens</span></p>
+                    ${lesson.challenge.explanation ? `<p class="text-red-600 mt-1">${lesson.challenge.explanation}</p>` : ''}
+                `;
+                
+                quizContentEl.appendChild(feedbackEl);
+                
+                // Highlight correct answer
+                allButtons[correctAnswerIndex].classList.add('bg-green-500', 'text-white');
+            }
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'mt-6 px-6 py-3 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition-colors';
+            closeBtn.textContent = 'Continue';
+            closeBtn.onclick = () => {
+                quizModal.classList.add('hidden');
+                renderApp(); // Refresh to update progress
+            };
+            quizContentEl.appendChild(closeBtn);
+        }
+
+        function checkExerciseAnswer(lessonId, exerciseIndex, selectedAnswer, correctAnswer, buttonEl) {
+            const isCorrect = selectedAnswer === correctAnswer;
+            
+            if (isCorrect) {
+                buttonEl.classList.remove('bg-white', 'hover:bg-gray-100');
+                buttonEl.classList.add('bg-green-500', 'text-white');
+                
+                // Disable all buttons in this exercise
+                const exerciseDiv = buttonEl.closest('.bg-gray-50');
+                exerciseDiv.querySelectorAll('button').forEach(btn => btn.disabled = true);
+                
+                // Show feedback
+                const feedbackEl = document.createElement('div');
+                feedbackEl.className = 'mt-2 p-2 bg-green-100 text-green-700 rounded-lg text-sm';
+                feedbackEl.innerHTML = '<i class="fas fa-check mr-1"></i> Correct!';
+                exerciseDiv.appendChild(feedbackEl);
+                
+                // Award a small amount of tokens
+                appState.tokens += 2;
+            } else {
+                buttonEl.classList.remove('bg-white', 'hover:bg-gray-100');
+                buttonEl.classList.add('bg-red-500', 'text-white');
+                
+                // Show feedback
+                const feedbackEl = document.createElement('div');
+                feedbackEl.className = 'mt-2 p-2 bg-red-100 text-red-700 rounded-lg text-sm';
+                feedbackEl.innerHTML = '<i class="fas fa-times mr-1"></i> Try again!';
+                buttonEl.parentNode.appendChild(feedbackEl);
+            }
+        }
+
+        function checkCalculationAnswer(lessonId, exerciseIndex, correctAnswer, buttonEl) {
+            const input = document.getElementById(`exercise-${lessonId}-${exerciseIndex}`);
+            const userAnswer = parseFloat(input.value);
+            const isCorrect = Math.abs(userAnswer - correctAnswer) < 0.01; // Allow for rounding errors
+            
+            if (isCorrect) {
+                input.classList.remove('border-gray-300');
+                input.classList.add('border-green-500', 'bg-green-50');
+                buttonEl.classList.remove('bg-indigo-500');
+                buttonEl.classList.add('bg-green-500');
+                buttonEl.textContent = 'Correct!';
+                buttonEl.disabled = true;
+                
+                // Award tokens
+                appState.tokens += 3;
+            } else {
+                input.classList.remove('border-gray-300');
+                input.classList.add('border-red-500', 'bg-red-50');
+                buttonEl.classList.remove('bg-indigo-500');
+                buttonEl.classList.add('bg-red-500');
+                buttonEl.textContent = 'Try Again';
+                
+                // Reset after a delay
+                setTimeout(() => {
+                    input.classList.remove('border-red-500', 'bg-red-50');
+                    input.classList.add('border-gray-300');
+                    buttonEl.classList.remove('bg-red-500');
+                    buttonEl.classList.add('bg-indigo-500');
+                    buttonEl.textContent = 'Check Answer';
+                }, 2000);
+            }
+        }
+
+        function closeModalAndExecuteAction() {
+            quizModal.classList.add('hidden');
+            setView('simulator');
+        }
+
+        // --- Elasticity Challenge Functions ---
+        function checkElasticityAnswer(challengeIndex, selectedIndex, correctAnswerIndex) {
+            const buttons = document.querySelectorAll(`#challenges-view .bg-gray-50:nth-child(${challengeIndex + 1}) button`);
+            
+            buttons.forEach(btn => btn.disabled = true);
+            
+            if (selectedIndex === correctAnswerIndex) {
+                buttons[selectedIndex].classList.remove('bg-white', 'hover:bg-gray-100');
+                buttons[selectedIndex].classList.add('bg-green-500', 'text-white');
+                
+                // Award tokens
+                const tokensEarned = 10;
+                appState.tokens += tokensEarned;
+                
+                // Show explanation
+                const explanationEl = document.createElement('div');
+                explanationEl.className = 'mt-2 p-3 bg-green-50 rounded-lg';
+                if (challengeIndex === 0) {
+                    explanationEl.innerHTML = `<p class="text-green-700"><strong>Correct!</strong> Insulin is a necessity for diabetics with few substitutes, making demand highly inelastic. Patients will continue purchasing it despite price increases.</p>`;
+                } else {
+                    explanationEl.innerHTML = `<p class="text-green-700"><strong>Correct!</strong> Vacation travel is typically elastic, especially when discounts are offered. The significant price reduction should lead to a substantial increase in demand.</p>`;
+                }
+                
+                buttons[selectedIndex].parentElement.appendChild(explanationEl);
+            } else {
+                buttons[selectedIndex].classList.remove('bg-white', 'hover:bg-gray-100');
+                buttons[selectedIndex].classList.add('bg-red-500', 'text-white');
+                
+                // Highlight correct answer
+                buttons[correctAnswerIndex].classList.add('bg-green-500', 'text-white');
+                
+                // Deduct tokens for intermediate/expert users
+                const tokensDeducted = appState.userLevel === 'Novice' ? 0 : 5;
+                appState.tokens = Math.max(0, appState.tokens - tokensDeducted);
+                
+                // Show explanation
+                const explanationEl = document.createElement('div');
+                explanationEl.className = 'mt-2 p-3 bg-red-50 rounded-lg';
+                if (challengeIndex === 0) {
+                    explanationEl.innerHTML = `<p class="text-red-700"><strong>Incorrect.</strong> Insulin is a necessity for diabetics with few substitutes, making demand highly inelastic. Patients will continue purchasing it despite price increases.</p>`;
+                } else {
+                    explanationEl.innerHTML = `<p class="text-red-700"><strong>Incorrect.</strong> Vacation travel is typically elastic, especially when discounts are offered. The significant price reduction should lead to a substantial increase in demand.</p>`;
+                }
+                
+                buttons[selectedIndex].parentElement.appendChild(explanationEl);
+            }
+            
+            renderApp(); // Refresh to update token count
+        }
+
+        function checkGDPChallenge() {
+            const input = document.getElementById('gdp-challenge-input');
+            const userAnswer = parseFloat(input.value);
+            const correctAnswer = 8500 + 2300 + 3200 + (1800 - 2100); // C + I + G + (X - M)
+            
+            const feedbackEl = document.getElementById('gdp-challenge-feedback');
+            
+            if (Math.abs(userAnswer - correctAnswer) < 0.01) {
+                input.classList.remove('border-gray-300');
+                input.classList.add('border-green-500', 'bg-green-50');
+                feedbackEl.textContent = 'Correct! GDP = C + I + G + (X - M) = $13,700 billion';
+                feedbackEl.className = 'mt-2 text-center font-semibold text-green-600';
+                
+                // Award tokens
+                appState.tokens += 15;
+                renderApp(); // Refresh to update token count
+            } else {
+                input.classList.remove('border-gray-300');
+                input.classList.add('border-red-500', 'bg-red-50');
+                feedbackEl.textContent = `Incorrect. The correct answer is $13,700 billion. Remember: GDP = C + I + G + (X - M)`;
+                feedbackEl.className = 'mt-2 text-center font-semibold text-red-600';
+            }
+            
+            feedbackEl.classList.remove('hidden');
+        }
+
+        // --- Interactive Lesson Functions ---
+        function checkElasticityCalculation(userAnswer, buttonEl) {
+            const correctAnswer = 0.5; // 5% / 10% = 0.5
+            
+            if (Math.abs(userAnswer - correctAnswer) < 0.01) {
+                buttonEl.classList.remove('bg-indigo-100');
+                buttonEl.classList.add('bg-green-500', 'text-white');
+                document.getElementById('elasticity-feedback').textContent = 'Correct! The price elasticity of demand is 0.5, which means demand is inelastic.';
+                document.getElementById('elasticity-feedback').className = 'text-sm text-green-600';
+            } else {
+                buttonEl.classList.remove('bg-indigo-100');
+                buttonEl.classList.add('bg-red-500', 'text-white');
+                document.getElementById('elasticity-feedback').textContent = 'Incorrect. Remember: Elasticity = %ΔQ / %ΔP = 5% / 10% = 0.5';
+                document.getElementById('elasticity-feedback').className = 'text-sm text-red-600';
+            }
+            
+            document.getElementById('elasticity-feedback').classList.remove('hidden');
+        }
+
+        function calculateGDP(c, i, g, x, m, buttonEl) {
+            const gdp = c + i + g + (x - m);
+            const resultEl = document.getElementById('gdp-result');
+            
+            resultEl.textContent = `GDP = C + I + G + (X - M) = $${c} + $${i} + $${g} + ($${x} - $${m}) = $${gdp} billion`;
+            resultEl.className = 'mt-2 text-center font-semibold text-green-600';
+            resultEl.classList.remove('hidden');
+            
+            buttonEl.textContent = 'Calculated!';
+            buttonEl.classList.remove('bg-indigo-500');
+            buttonEl.classList.add('bg-green-500');
+        }
+
+        function calculateInflation() {
+            const amount = parseFloat(document.getElementById('inflation-amount').value);
+            const rate = parseFloat(document.getElementById('inflation-rate').value) / 100;
+            const years = parseInt(document.getElementById('inflation-years').value);
+            
+            const futureValue = amount / Math.pow(1 + rate, years);
+            const resultEl = document.getElementById('inflation-result');
+            
+            resultEl.textContent = `$${amount} today will have the same purchasing power as $${futureValue.toFixed(2)} in ${years} years with ${rate*100}% inflation.`;
+            resultEl.className = 'mt-2 text-center font-semibold text-purple-600';
+            resultEl.classList.remove('hidden');
+        }
+
+        function evaluatePolicyChoices() {
+            const situation = document.getElementById('economic-situation').value;
+            const fiscalOptions = Array.from(document.querySelectorAll('input[value^="fiscal_"]:checked')).map(cb => cb.value);
+            const monetaryOptions = Array.from(document.querySelectorAll('input[value^="monetary_"]:checked')).map(cb => cb.value);
+            
+            let correctFiscal = [];
+            let correctMonetary = [];
+            let feedback = '';
+            
+            switch(situation) {
+                case 'recession':
+                    correctFiscal = ['fiscal_expand', 'tax_cut'];
+                    correctMonetary = ['monetary_expand', 'reserve_decrease'];
+                    feedback = 'During a recession, expansionary policies are needed to stimulate the economy.';
+                    break;
+                case 'inflation':
+                    correctFiscal = ['fiscal_contract', 'tax_increase'];
+                    correctMonetary = ['monetary_contract', 'reserve_increase'];
+                    feedback = 'During high inflation, contractionary policies are needed to reduce aggregate demand.';
+                    break;
+                case 'stagflation':
+                    // Stagflation is tricky - often requires supply-side policies
+                    correctFiscal = ['fiscal_expand']; // Could argue for targeted spending
+                    correctMonetary = ['monetary_contract']; // Usually need to control inflation first
+                    feedback = 'Stagflation presents a policy dilemma. Often, controlling inflation takes priority while using targeted fiscal policy.';
+                    break;
+            }
+            
+            const fiscalCorrect = arraysEqual(fiscalOptions, correctFiscal);
+            const monetaryCorrect = arraysEqual(monetaryOptions, correctMonetary);
+            
+            const feedbackEl = document.getElementById('policy-feedback');
+            
+            if (fiscalCorrect && monetaryCorrect) {
+                feedbackEl.textContent = 'Correct! ' + feedback;
+                feedbackEl.className = 'mt-2 text-center font-semibold text-green-600';
+                
+                // Award tokens
+                appState.tokens += 10;
+                renderApp(); // Refresh to update token count
+            } else {
+                feedbackEl.textContent = 'Not quite right. ' + feedback;
+                feedbackEl.className = 'mt-2 text-center font-semibold text-red-600';
+            }
+            
+            feedbackEl.classList.remove('hidden');
+        }
+
+        function arraysEqual(a, b) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }
+
+        function simulateGameTheory() {
+            const playerStrategy = document.getElementById('player-strategy').value;
+            const opponentStrategy = document.getElementById('opponent-strategy').value;
+            const rounds = parseInt(document.getElementById('game-rounds').value);
+            
+            const resultsDiv = document.getElementById('round-results');
+            const finalScoreDiv = document.getElementById('final-score');
+            const gameResultsDiv = document.getElementById('game-results');
+            
+            resultsDiv.innerHTML = '';
+            
+            let playerScore = 0;
+            let opponentScore = 0;
+            let playerLastMove = 'cooperate'; // Default first move
+            let opponentLastMove = 'cooperate';
+            
+            for (let i = 0; i < rounds; i++) {
+                // Determine moves based on strategies
+                const playerMove = getMove(playerStrategy, playerLastMove, opponentLastMove, i);
+                const opponentMove = getMove(opponentStrategy, opponentLastMove, playerLastMove, i);
+                
+                // Calculate scores based on prisoner's dilemma payoffs
+                // Cooperate=3, Defect=5, Sucker=0, Mutual Defect=1
+                if (playerMove === 'cooperate' && opponentMove === 'cooperate') {
+                    playerScore += 3;
+                    opponentScore += 3;
+                } else if (playerMove === 'cooperate' && opponentMove === 'defect') {
+                    playerScore += 0;
+                    opponentScore += 5;
+                } else if (playerMove === 'defect' && opponentMove === 'cooperate') {
+                    playerScore += 5;
+                    opponentScore += 0;
+                } else {
+                    playerScore += 1;
+                    opponentScore += 1;
+                }
+                
+                // Record results
+                resultsDiv.innerHTML += `
+                    <div class="flex justify-between text-sm py-1 border-b">
+                        <span>Round ${i+1}:</span>
+                        <span>You ${playerMove}, Opponent ${opponentMove}</span>
+                        <span>Score: ${playerScore}-${opponentScore}</span>
+                    </div>
+                `;
+                
+                // Update last moves
+                playerLastMove = playerMove;
+                opponentLastMove = opponentMove;
+            }
+            
+            finalScoreDiv.textContent = `Final Score: You ${playerScore} - Opponent ${opponentScore}`;
+            gameResultsDiv.classList.remove('hidden');
+            
+            // Award tokens based on performance
+            if (playerScore > opponentScore) {
+                appState.tokens += 5;
+                renderApp(); // Refresh to update token count
+            }
+        }
+
+        function getMove(strategy, myLastMove, theirLastMove, round) {
+            switch(strategy) {
+                case 'always_cooperate':
+                    return 'cooperate';
+                case 'always_defect':
+                    return 'defect';
+                case 'tit_for_tat':
+                    if (round === 0) return 'cooperate';
+                    return theirLastMove;
+                case 'random':
+                    return Math.random() > 0.5 ? 'cooperate' : 'defect';
+                default:
+                    return 'cooperate';
+            }
+        }
+
+        // --- AI Assistant Functions ---
+        function openAssistant() {
+            assistantModal.classList.remove('hidden');
+            assistantModal.classList.add('flex');
+            assistantInput.focus();
+        }
+
+        function sendAssistantMessage() {
+            const message = assistantInput.value.trim();
+            if (message === '') return;
+            
+            // Add user message to chat
+            addAssistantMessage(message, 'user');
+            
+            // Clear input
+            assistantInput.value = '';
+            
+            // Generate and add bot response
+            setTimeout(() => {
+                const botResponse = generateAssistantResponse(message);
+                addAssistantMessage(botResponse, 'bot');
+            }, 1000);
+        }
+
+        function addAssistantMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message mb-4 ${sender === 'user' ? 'text-right' : ''}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = `rounded-lg p-3 max-w-xs md:max-w-md inline-block ${
+                sender === 'user' 
+                    ? 'bg-indigo-500 text-white' 
+                    : 'bg-indigo-100 text-indigo-800'
+            }`;
+            
+            bubbleDiv.textContent = message;
+            messageDiv.appendChild(bubbleDiv);
+            
+            assistantChat.appendChild(messageDiv);
+            assistantChat.scrollTop = assistantChat.scrollHeight;
+        }
+
+        function generateAssistantResponse(userMessage) {
+            // Simple keyword-based response system
+            // In a real implementation, this would connect to an AI API
+            
+            const lowerMessage = userMessage.toLowerCase();
+            const currentLesson = lessonData.find(l => 
+                quizTitleEl.textContent.includes(l.title)
+            );
+            
+            // Check for specific lesson-related questions
+            if (currentLesson) {
+                if (lowerMessage.includes('what') && lowerMessage.includes('about')) {
+                    return `In the lesson "${currentLesson.title}", we cover ${currentLesson.content.substring(0, 100)}... Would you like me to explain any specific part in more detail?`;
+                }
+                
+                if (lowerMessage.includes('example') || lowerMessage.includes('explain')) {
+                    if (currentLesson.id === 'scarcity') {
+                        return 'A great example of scarcity is time itself. You have only 24 hours in a day, so time spent studying economics is time not available for other activities. This illustrates the concept of opportunity cost.';
+                    } else if (currentLesson.id === 'supplyDemand') {
+                        return 'Think about the market for smartphones. When a new model is released at a high price, demand might be limited. But as the price decreases over time, more people can afford it, increasing quantity demanded. Meanwhile, manufacturers are willing to produce more units at higher prices.';
+                    } else if (currentLesson.id === 'elasticity') {
+                        return 'Consider insulin for diabetics. Even if the price doubles, diabetics still need roughly the same amount - demand is inelastic. Now consider luxury vacations. If prices increase significantly, many people will cancel or postpone trips - demand is elastic.';
+                    }
+                }
+            }
+            
+            // General economics questions
+            if (lowerMessage.includes('supply') && lowerMessage.includes('demand')) {
+                return 'Supply and demand are the fundamental forces that drive market economies. Supply represents how much the market can offer, while demand represents how much of a product people want. The price where supply and demand meet is called the equilibrium price.';
+            }
+            
+            if (lowerMessage.includes('elasticity')) {
+                return 'Elasticity measures how much quantity demanded or supplied changes in response to price changes. If a small price change causes a big quantity change, we say it\'s elastic. If quantity changes very little, it\'s inelastic.';
+            }
+            
+            if (lowerMessage.includes('gdp') || lowerMessage.includes('gross domestic product')) {
+                return 'GDP is the total value of all final goods and services produced within a country in a given period. It can be calculated using the expenditure approach: GDP = C + I + G + (X - M), where C is consumption, I is investment, G is government spending, X is exports, and M is imports.';
+            }
+            
+            if (lowerMessage.includes('inflation')) {
+                return 'Inflation is the rate at which the general level of prices for goods and services is rising. Moderate inflation is normal in a growing economy, but high inflation can be problematic. It\'s typically measured using the Consumer Price Index (CPI).';
+            }
+            
+            if (lowerMessage.includes('unemployment')) {
+                return 'There are several types of unemployment: frictional (between jobs), structural (skills mismatch), cyclical (due to economic downturns), and seasonal. The natural rate of unemployment includes frictional and structural unemployment but not cyclical.';
+            }
+            
+            if (lowerMessage.includes('fiscal') || lowerMessage.includes('monetary')) {
+                return 'Fiscal policy is controlled by the government and involves taxation and spending. Monetary policy is controlled by the central bank and involves interest rates and money supply. Both can be used to influence the economy.';
+            }
+            
+            // Default response
+            const defaultResponses = [
+                "That's an interesting question about economics. Could you provide more specific details so I can give you a better answer?",
+                "I'd be happy to help with that economic concept. Which aspect are you most curious about?",
+                "That's a great question! Economics has many fascinating principles that explain how our world works.",
+                "I understand you're asking about economics. Could you clarify which specific topic you'd like to explore?",
+                "Economics helps us understand decision-making under scarcity. What particular economic concept are you interested in?"
+            ];
+            
+            return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+        }
+
+        // --- Utility Functions ---
+        function calculateMasteryScore() {
+            let totalScore = 0;
+            let count = 0;
+            
+            for (const topic in appState.userProgress) {
+                if (appState.userProgress[topic].completed) {
+                    totalScore += appState.userProgress[topic].score;
+                    count++;
+                }
+            }
+            
+            return count > 0 ? Math.round(totalScore / count) : 0;
+        }
+
+        // --- Initialize App ---
+        function initApp() {
+            // Close modal handlers
+            document.getElementById('close-quiz-btn').onclick = () => {
+                quizModal.classList.add('hidden');
+                renderApp();
+            };
+            
+            document.getElementById('close-assistant-btn').onclick = () => {
+                assistantModal.classList.add('hidden');
+            };
+            
+            // Assistant input handler
+            sendAssistantBtn.onclick = sendAssistantMessage;
+            assistantInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') sendAssistantMessage();
+            });
+            
+            // Make functions globally available for onclick attributes
+            window.setView = setView;
+            window.showLesson = showLesson;
+            window.startQuiz = startQuiz;
+            window.checkQuizAnswer = checkQuizAnswer;
+            window.checkQuizQuestion = checkQuizQuestion;
+            window.completeQuiz = completeQuiz;
+            window.checkExerciseAnswer = checkExerciseAnswer;
+            window.checkCalculationAnswer = checkCalculationAnswer;
+            window.checkElasticityAnswer = checkElasticityAnswer;
+            window.checkGDPChallenge = checkGDPChallenge;
+            window.closeModalAndExecuteAction = closeModalAndExecuteAction;
+            window.checkElasticityCalculation = checkElasticityCalculation;
+            window.calculateGDP = calculateGDP;
+            window.calculateInflation = calculateInflation;
+            window.evaluatePolicyChoices = evaluatePolicyChoices;
+            window.simulateGameTheory = simulateGameTheory;
+            window.openAssistant = openAssistant;
+            window.login = login;
+        }
+
+        // Start the app when the page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        // Render MathJax equations
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+</body>
+</html>
